@@ -1,0 +1,81 @@
+name: right_routes
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  get: ^4.7.2
+  flutter_screenutil: ^5.9.3
+  flutter_svg: ^2.2.3
+  google_fonts: ^8.1.0
+  cupertino_icons: ^1.0.8
+  pin_code_fields: ^8.0.1
+  image_picker: ^1.0.7
+  local_auth: ^2.3.0
+
+  # Voice & Speech
+
+  speech_to_text: ^7.3.0
+  avatar_glow: ^3.0.1
+  maplibre_gl: ^0.26.1
+
+
+
+  # Location & GPS
+  geolocator: ^14.0.2
+  permission_handler: ^12.0.3
+
+  # File Handling (UPDATED to fix warnings)
+  file_picker: ^8.0.0
+  csv: ^6.0.0
+
+  # Maps
+  geocoding: ^4.0.0
+  # CAUTION: Add versions here to avoid breaking changes
+  #  flutter_map: ^6.0.0 # Match this with your latlong2 version
+  # Networking & Storage
+  http: ^1.6.0
+  http_parser: ^4.0.0
+  flutter_secure_storage: ^10.0.0
+  shared_preferences: ^2.5.1
+  dio: ^5.9.2
+  device_info_plus: ^12.4.0
+  url_launcher: ^6.3.2
+
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  # Assets
+  assets:
+    - assets/background/
+    - assets/icons/
+    - assets/images/
+    - assets/fonts/
+
+  # Fonts (✅ Correct indentation - same level as assets)
+  fonts:
+    - family: League Gothic
+      fonts:
+        - asset: assets/fonts/LeagueGothic-Regular.ttf
+          weight: 400
+
+    - family: Lato
+      fonts:
+        - asset: assets/fonts/Lato-Regular.ttf
+          weight: 400
+    - family: Bebas Neue
+      fonts:
+        - asset: assets/fonts/BebasNeue-Regular.ttf
+          weight: 400
