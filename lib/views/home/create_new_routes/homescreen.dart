@@ -635,37 +635,6 @@ class _HomescreenState extends State<Homescreen> {
               ),
             ),
           ),
-          Padding(
-            padding: EdgeInsets.only(right: context.w(6)),
-            child: GestureDetector(
-              onTap: () {
-                _showMicDialog(context, title: 'Start Point (Voice)',
-                    onDone: (text) {
-                  if (text.isNotEmpty) {
-                    _ctrl.endPointController.text = text;
-                    Get.snackbar('Success', 'Start point updated from voice',
-                        backgroundColor: Colors.green,
-                        colorText: Colors.white,
-                        snackPosition: SnackPosition.TOP,
-                        duration: const Duration(seconds: 1));
-                  }
-                });
-              },
-              child: Container(
-                width: context.w(26),
-                height: context.h(26),
-                decoration: BoxDecoration(
-                  color: AppColors.orange,
-                  borderRadius: BorderRadius.circular(context.r(6)),
-                ),
-                child: Icon(
-                  Icons.mic_none,
-                  color: AppColors.white,
-                  size: context.sp(18),
-                ),
-              ),
-            ),
-          ),
         ],
       ),
     );
