@@ -6,7 +6,6 @@ import 'package:right_routes/utils/colors.dart';
 import 'package:right_routes/utils/responsive_ext.dart';
 import 'package:right_routes/views/home/home_all_widgets/dialog/dialog_map.dart';
 import 'package:right_routes/views/home/home_all_widgets/dialog/dialog_document.dart';
-import 'package:right_routes/views/home/home_all_widgets/dialog/dialog_route_name.dart';
 import '../../../../global_widgets/custom_navbar.dart';
 import '../../../../utils/assets_manager.dart';
 import 'package:right_routes/views/home/create_new_routes/home_controller.dart';
@@ -33,7 +32,6 @@ class _HomescreenState extends State<Homescreen> {
     _ctrl = Get.isRegistered<HomeController>()
         ? Get.find<HomeController>()
         : Get.put(HomeController(), permanent: true);
-
   }
 
   @override
@@ -81,47 +79,52 @@ class _HomescreenState extends State<Homescreen> {
           right: context.w(20),
           bottom: context.h(20),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(height: context.s(15)),
-            _buildTitle(context),
-            SizedBox(height: context.h(10)),
-            _buildPermitTitle(context),
-            SizedBox(height: context.h(8)),
-            _buildStep1Label(context),
-            SizedBox(height: context.h(8)),
-            _buildEndPointField(context),
-            SizedBox(height: context.h(12)),
-            const HomeScreenMap(),
-            SizedBox(height: context.h(12)),
-            _buildStep2Label(context),
-            SizedBox(height: context.h(16)),
-            _buildActionButtonsRow(context),
-            SizedBox(height: context.h(20)),
-            _buildContinueButton(context),
-            SizedBox(height: context.h(50)),
-          ],
-        ),
+        child: Obx(() => Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(height: context.s(15)),
+                _buildTitle(context),
+                SizedBox(height: context.h(6)),
+                _buildPermitTitle(context),
+                SizedBox(height: context.h(12)),
+
+                // ── STEP 1: Choose one ──────────────────────────
+                if (_ctrl.choiceMode.value == '' && !_ctrl.showMapSection.value)
+                  _buildChooseSection(context),
+
+                // ── Import Permit selected → show import actions ─
+                if (_ctrl.choiceMode.value == 'import' && !_ctrl.showMapSection.value)
+                  _buildImportSection(context),
+
+                // ── Build Your Route selected → text field + NEXT ─
+                if (_ctrl.choiceMode.value == 'build' && !_ctrl.showMapSection.value)
+                  _buildBuildRouteSection(context),
+
+                // ── Map section (after permit imported or NEXT pressed) ─
+                if (_ctrl.showMapSection.value) ...[
+                  _buildBackButton(context),
+                  SizedBox(height: context.h(8)),
+                  _buildStep1Label(context),
+                  SizedBox(height: context.h(8)),
+                  _buildEndPointField(context),
+                  SizedBox(height: context.h(12)),
+                  const HomeScreenMap(),
+                  SizedBox(height: context.h(20)),
+                  _buildContinueButton(context),
+                ],
+
+                SizedBox(height: context.h(50)),
+              ],
+            )),
       ),
     );
   }
 
   // ─────────────────────────────────────────────────────────────
   // LANDSCAPE LAYOUT
-  // Map height = full available height minus top/bottom safe-area
-  // padding AND outer padding, so the map never touches the screen
-  // edge or sits flush against the home-indicator / navbar inset.
-  // Key: wrap the whole Row in a SizedBox with a fixed height so
-  // that Expanded (right column) gets a bounded constraint and
-  // fills the screen vertically — but bounded, not edge-to-edge.
   // ─────────────────────────────────────────────────────────────
   Widget _buildLandscapeLayout(BuildContext context) {
     final double padding = context.s(12);
-    // bottom safe-area inset is NOT excluded by SafeArea here because
-    // this widget is rendered inside `SafeArea(bottom: false, ...)`,
-    // so we must account for it manually or the map gets pushed flush
-    // against the bottom edge / system nav bar.
     final double bottomInset = MediaQuery.of(context).padding.bottom;
     final double availableHeight = MediaQuery.of(context).size.height -
         MediaQuery.of(context).padding.top -
@@ -137,62 +140,67 @@ class _HomescreenState extends State<Homescreen> {
       ),
       child: SizedBox(
         height: availableHeight,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── LEFT COLUMN ──────────────────────────────────────
-            SizedBox(
-              width: MediaQuery.of(context).size.width * 0.40,
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(height: context.s(10)),
-                    _buildTitle(context),
-                    SizedBox(height: context.s(20)),
-                    _buildPermitTitle(context),
-                    SizedBox(height: context.s(8)),
-                    _buildStep1Label(context),
-                    SizedBox(height: context.s(8)),
-                    _buildEndPointField(context),
-                    SizedBox(height: context.s(12)),
-                    Divider(color: AppColors.white, thickness: 1),
-                    SizedBox(height: context.s(10)),
-                    _buildStep2Label(context),
-                    SizedBox(height: context.s(16)),
-                    _buildActionButtonsRow(context),
-                    SizedBox(height: context.s(16)),
-                    _buildContinueButton(context),
-                    SizedBox(height: context.s(80)),
-                  ],
-                ),
-              ),
-            ),
+        child: Obx(() => Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ── LEFT COLUMN ────────────────────────────────
+                SizedBox(
+                  width: MediaQuery.of(context).size.width * 0.40,
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(height: context.s(10)),
+                        _buildTitle(context),
+                        SizedBox(height: context.s(6)),
+                        _buildPermitTitle(context),
+                        SizedBox(height: context.s(12)),
 
-            SizedBox(width: context.w(10)),
-
-            // ── RIGHT COLUMN — Map fills the bounded height ──────
-            Expanded(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(context.r(12)),
-                child: const SizedBox(
-                  width: double.infinity,
-                  height: double.infinity,
-                  child: HomeScreenMap(),
+                        if (_ctrl.choiceMode.value == '' && !_ctrl.showMapSection.value)
+                          _buildChooseSection(context),
+                        if (_ctrl.choiceMode.value == 'import' && !_ctrl.showMapSection.value)
+                          _buildImportSection(context),
+                        if (_ctrl.choiceMode.value == 'build' && !_ctrl.showMapSection.value)
+                          _buildBuildRouteSection(context),
+                        if (_ctrl.showMapSection.value) ...[
+                          _buildBackButton(context),
+                          SizedBox(height: context.s(8)),
+                          _buildStep1Label(context),
+                          SizedBox(height: context.s(8)),
+                          _buildEndPointField(context),
+                          SizedBox(height: context.s(16)),
+                          _buildContinueButton(context),
+                        ],
+                        SizedBox(height: context.s(80)),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          ],
-        ),
+
+                SizedBox(width: context.w(10)),
+
+                // ── RIGHT COLUMN — Map ─────────────────────────
+                if (_ctrl.showMapSection.value)
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(context.r(12)),
+                      child: const SizedBox(
+                        width: double.infinity,
+                        height: double.infinity,
+                        child: HomeScreenMap(),
+                      ),
+                    ),
+                  ),
+              ],
+            )),
       ),
     );
   }
 
   // ─────────────────────────────────────────────────────────────
-  // SHARED WIDGETS
+  // TITLE & PERMIT
   // ─────────────────────────────────────────────────────────────
-
   Widget _buildTitle(BuildContext context) {
     return Center(
       child: FittedBox(
@@ -211,178 +219,6 @@ class _HomescreenState extends State<Homescreen> {
     );
   }
 
-  Widget _buildRouteNameLabel(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Flexible(
-          child: Text(
-            'Enter Route Name',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: context.sp(18),
-              fontFamily: 'Lato',
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
-        SizedBox(width: context.w(6)),
-        GestureDetector(
-          onTap: () => showRouteNameDialog(context),
-          child: SvgPicture.asset(
-            'assets/icons/Question-Box-gray.svg',
-            width: context.w(24),
-            height: context.h(24),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildRouteNameField(BuildContext context) {
-    return Container(
-      height: context.h(33),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(context.r(4)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: _ctrl.routeNameController,
-              decoration: InputDecoration(
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: context.w(12),
-                  vertical: 0,
-                ),
-                isDense: true,
-              ),
-              style: TextStyle(
-                fontSize: context.sp(16),
-                fontFamily: 'Lato',
-                color: Colors.black,
-              ),
-            ),
-          ),
-          Padding(
-            padding: EdgeInsets.only(right: context.w(6)),
-            child: GestureDetector(
-              onTap: () {
-                _showMicDialog(context, title: 'Route Name (Voice)',
-                    onDone: (text) {
-                  if (text.isNotEmpty) {
-                    _ctrl.routeNameController.text = text;
-                    Get.snackbar('Success', 'Route name updated from voice',
-                        backgroundColor: Colors.green,
-                        colorText: Colors.white,
-                        snackPosition: SnackPosition.TOP,
-                        duration: const Duration(seconds: 1));
-                  } else {
-                    Get.snackbar('Warning', 'No voice text captured',
-                        backgroundColor: Colors.orange,
-                        colorText: Colors.white,
-                        snackPosition: SnackPosition.TOP,
-                        duration: const Duration(seconds: 1));
-                  }
-                });
-              },
-              child: Container(
-                width: context.w(20),
-                height: context.h(20),
-                decoration: BoxDecoration(
-                  color: AppColors.orange,
-                  borderRadius: BorderRadius.circular(context.r(6)),
-                ),
-                child: Icon(
-                  Icons.mic_none,
-                  color: AppColors.white,
-                  size: context.sp(18),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEndPointField(BuildContext context) {
-    return Container(
-      height: context.h(33),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(context.r(4)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: _ctrl.endPointController,
-              decoration: InputDecoration(
-                hintText: 'Enter End Point',
-                hintStyle: TextStyle(
-                  color: Colors.grey.shade400,
-                  fontSize: context.sp(14),
-                ),
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: context.w(12),
-                  vertical: 0,
-                ),
-                isDense: true,
-              ),
-              style: TextStyle(
-                fontSize: context.sp(16),
-                fontFamily: 'Lato',
-                color: Colors.black,
-              ),
-            ),
-          ),
-          Padding(
-            padding: EdgeInsets.only(right: context.w(6)),
-            child: GestureDetector(
-              onTap: () {
-                _showMicDialog(context, title: 'End Point (Voice)',
-                    onDone: (text) {
-                  if (text.isNotEmpty) {
-                    _ctrl.endPointController.text = text;
-                    Get.snackbar('Success', 'End point updated from voice',
-                        backgroundColor: Colors.green,
-                        colorText: Colors.white,
-                        snackPosition: SnackPosition.TOP,
-                        duration: const Duration(seconds: 1));
-                  } else {
-                    Get.snackbar('Warning', 'No voice text captured',
-                        backgroundColor: Colors.orange,
-                        colorText: Colors.white,
-                        snackPosition: SnackPosition.TOP,
-                        duration: const Duration(seconds: 1));
-                  }
-                });
-              },
-              child: Container(
-                width: context.w(20),
-                height: context.h(20),
-                decoration: BoxDecoration(
-                  color: AppColors.orange,
-                  borderRadius: BorderRadius.circular(context.r(6)),
-                ),
-                child: Icon(
-                  Icons.mic_none,
-                  color: AppColors.white,
-                  size: context.sp(18),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildPermitTitle(BuildContext context) {
     return Center(
       child: Text(
@@ -397,6 +233,342 @@ class _HomescreenState extends State<Homescreen> {
     );
   }
 
+  // ─────────────────────────────────────────────────────────────
+  // SECTION 1: "Choose one" with Import Permit + Build Your Route
+  // ─────────────────────────────────────────────────────────────
+  Widget _buildChooseSection(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Text(
+              'Choose one:',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: context.sp(17),
+                fontFamily: 'Lato',
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            SizedBox(width: context.w(6)),
+            GestureDetector(
+              onTap: () => showPermitDialog(context),
+              child: SvgPicture.asset(
+                'assets/icons/Question-Box-gray.svg',
+                width: context.w(22),
+                height: context.h(22),
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: context.h(14)),
+        Row(
+          children: [
+            // Import Permit button
+            Expanded(
+              child: _buildChoiceButton(
+                context,
+                icon: Icons.file_download_outlined,
+                label: 'Import\nPermit',
+                onTap: () {
+                  _ctrl.choiceMode.value = 'import';
+                  _pickFile(); // directly open document picker
+                },
+              ),
+            ),
+            SizedBox(width: context.w(12)),
+            // Build Your Route button
+            Expanded(
+              child: _buildChoiceButton(
+                context,
+                icon: Icons.edit_outlined,
+                label: 'Build Your\nRoute',
+                onTap: () {
+                  _ctrl.choiceMode.value = 'build';
+                },
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: context.h(20)),
+        // Map shown behind (dark background placeholder)
+      ],
+    );
+  }
+
+  Widget _buildChoiceButton(BuildContext context,
+      {required IconData icon,
+      required String label,
+      required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: context.h(50),
+        decoration: BoxDecoration(
+          color: AppColors.orange,
+          borderRadius: BorderRadius.circular(context.r(10)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: Colors.white, size: context.sp(20)),
+            SizedBox(width: context.w(6)),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: context.sp(13),
+                fontFamily: 'Lato',
+                fontWeight: FontWeight.w700,
+                height: 1.2,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+
+  // ─────────────────────────────────────────────────────────────
+  // SECTION: Import Permit (file picker)
+  // ─────────────────────────────────────────────────────────────
+  Widget _buildImportSection(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Text(
+              'Choose one:',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: context.sp(17),
+                fontFamily: 'Lato',
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            SizedBox(width: context.w(6)),
+            GestureDetector(
+              onTap: () => showPermitDialog(context),
+              child: SvgPicture.asset(
+                'assets/icons/Question-Box-gray.svg',
+                width: context.w(22),
+                height: context.h(22),
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: context.h(14)),
+        Row(
+          children: [
+            Expanded(
+              child: _buildChoiceButtonActive(
+                context,
+                icon: Icons.file_download_outlined,
+                label: 'Import\nPermit',
+                isActive: true,
+                onTap: _pickFile, // allow re-triggering file picker
+              ),
+            ),
+            SizedBox(width: context.w(12)),
+            Expanded(
+              child: _buildChoiceButtonActive(
+                context,
+                icon: Icons.edit_outlined,
+                label: 'Build Your\nRoute',
+                isActive: false,
+                onTap: () => _ctrl.choiceMode.value = 'build',
+              ),
+            ),
+          ],
+        ),
+        // Map placeholder removed
+      ],
+    );
+  }
+
+  Widget _buildChoiceButtonActive(BuildContext context,
+      {required IconData icon,
+      required String label,
+      required bool isActive,
+      VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: context.h(50),
+        decoration: BoxDecoration(
+          color: isActive ? AppColors.orange : AppColors.orange.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(context.r(10)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: Colors.white, size: context.sp(20)),
+            SizedBox(width: context.w(6)),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: context.sp(13),
+                fontFamily: 'Lato',
+                fontWeight: FontWeight.w700,
+                height: 1.2,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // SECTION: Build Your Route (text field + NEXT)
+  // ─────────────────────────────────────────────────────────────
+  Widget _buildBuildRouteSection(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Text(
+              'Choose one:',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: context.sp(17),
+                fontFamily: 'Lato',
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            SizedBox(width: context.w(6)),
+            GestureDetector(
+              onTap: () => showPermitDialog(context),
+              child: SvgPicture.asset(
+                'assets/icons/Question-Box-gray.svg',
+                width: context.w(22),
+                height: context.h(22),
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: context.h(14)),
+        Row(
+          children: [
+            Expanded(
+              child: _buildChoiceButtonActive(
+                context,
+                icon: Icons.file_download_outlined,
+                label: 'Import\nPermit',
+                isActive: false,
+                onTap: () => _ctrl.choiceMode.value = 'import',
+              ),
+            ),
+            SizedBox(width: context.w(12)),
+            Expanded(
+              child: _buildChoiceButtonActive(
+                context,
+                icon: Icons.edit_outlined,
+                label: 'Build Your\nRoute',
+                isActive: true,
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: context.h(16)),
+
+        // Directions text area
+        Container(
+          constraints: BoxConstraints(minHeight: context.h(160)),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(context.r(8)),
+          ),
+          child: TextField(
+            controller: _ctrl.buildRouteTextController,
+            onChanged: (v) => _ctrl.buildRouteText.value = v,
+            maxLines: null,
+            minLines: 7,
+            decoration: InputDecoration(
+              hintText:
+                  'Example:\nIA-9 EB\nUS-18 SB\nIA-4 SB\nIA-3 EB\nUS-69 NB\nB62 at Quail Ave',
+              hintStyle: TextStyle(
+                color: Colors.grey.shade400,
+                fontSize: context.sp(14),
+                fontFamily: 'Lato',
+                height: 1.6,
+              ),
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.all(context.s(14)),
+            ),
+            style: TextStyle(
+              fontSize: context.sp(14),
+              fontFamily: 'Lato',
+              color: Colors.black,
+              height: 1.6,
+            ),
+          ),
+        ),
+        SizedBox(height: context.h(16)),
+
+        // NEXT button
+        Center(
+          child: Obx(() {
+            final hasText = _ctrl.buildRouteText.value.trim().isNotEmpty;
+            return CustomButton(
+              text: 'NEXT',
+              width: context.w(150),
+              height: context.h(44),
+              fontSize: context.sp(20),
+              backgroundColor: hasText ? AppColors.orange : AppColors.medGray,
+              borderRadius: 10,
+              onPressed: hasText
+                  ? () {
+                      _ctrl.permitText.value =
+                          _ctrl.buildRouteTextController.text.trim();
+                      _ctrl.activeAction.value = 'edit';
+                      _ctrl.showMapSection.value = true;
+                    }
+                  : null,
+            );
+          }),
+        ),
+        SizedBox(height: context.h(16)),
+      ],
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // MAP SECTION WIDGETS
+  // ─────────────────────────────────────────────────────────────
+  Widget _buildBackButton(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        _ctrl.showMapSection.value = false;
+      },
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.chevron_left, color: AppColors.orange, size: context.sp(20)),
+          Text(
+            'Back',
+            style: TextStyle(
+              color: AppColors.orange,
+              fontSize: context.sp(15),
+              fontFamily: 'Lato',
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildStep1Label(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -405,23 +577,12 @@ class _HomescreenState extends State<Homescreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Step 1: ',
+              'Set your Start & End Points:',
               style: TextStyle(
-                color: AppColors.orange,
-                fontSize: context.sp(19),
+                color: Colors.white,
+                fontSize: context.sp(17),
                 fontFamily: 'Lato',
                 fontWeight: FontWeight.w700,
-              ),
-            ),
-            Flexible(
-              child: Text(
-                'Set your Start & End Points',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: context.sp(18),
-                  fontFamily: 'Lato',
-                  fontWeight: FontWeight.w700,
-                ),
               ),
             ),
             SizedBox(width: context.w(6)),
@@ -431,113 +592,110 @@ class _HomescreenState extends State<Homescreen> {
                 onTap: () => dialogMap(context),
                 child: SvgPicture.asset(
                   'assets/icons/Question-Box-gray.svg',
-                  width: context.w(24),
-                  height: context.h(24),
+                  width: context.w(22),
+                  height: context.h(22),
                 ),
               ),
             ),
           ],
         ),
-        SizedBox(height: context.h(4)),
-        Text(
-          '(Pause for 1.5s after typing to update map)',
-          style: TextStyle(
-            color: AppColors.white.withValues(alpha: 0.6),
-            fontSize: context.sp(11),
-            fontFamily: 'Lato',
-            fontStyle: FontStyle.italic,
-          ),
-        ),
       ],
     );
   }
 
-  Widget _buildStep2Label(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Step 2: ',
-          style: TextStyle(
-            color: AppColors.orange,
-            fontSize: context.sp(19),
-            fontFamily: 'Lato',
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        Flexible(
-          child: Text(
-            'Import Permit 1',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: context.sp(18),
-              fontFamily: 'Lato',
-              fontWeight: FontWeight.w700,
+  Widget _buildEndPointField(BuildContext context) {
+    return Container(
+      height: context.h(40),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(context.r(6)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _ctrl.endPointController,
+              decoration: InputDecoration(
+                hintText: 'Type Starting point or move pin on map',
+                hintStyle: TextStyle(
+                  color: Colors.grey.shade400,
+                  fontSize: context.sp(13),
+                ),
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: context.w(12),
+                  vertical: 0,
+                ),
+                isDense: true,
+              ),
+              style: TextStyle(
+                fontSize: context.sp(14),
+                fontFamily: 'Lato',
+                color: Colors.black,
+              ),
             ),
           ),
-        ),
-        SizedBox(width: context.w(6)),
-        Padding(
-          padding: EdgeInsets.only(top: context.h(2)),
-          child: GestureDetector(
-            onTap: () => showPermitDialog(context),
-            child: SvgPicture.asset(
-              'assets/icons/Question-Box-gray.svg',
-              width: context.w(24),
-              height: context.h(24),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildActionButtonsRow(BuildContext context) {
-    return LayoutBuilder(builder: (context, constraints) {
-      final rowWidth = constraints.maxWidth * 0.7;
-      final buttonWidth = (rowWidth - (3 * context.w(10))) / 4;
-      final finalWidth =
-          buttonWidth > context.w(65) ? context.w(65) : buttonWidth;
-
-      return Center(
-        child: SizedBox(
-          width: rowWidth,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _buildActionButton(context, SvgManager.importWhite, finalWidth,
-                  _pickFile, 'import'),
-              _buildActionButton(context, SvgManager.editPencilWhite,
-                  finalWidth, () => _showEditDialog(context), 'edit'),
-              _buildActionButton(context, SvgManager.micWhite, finalWidth, () {
-                _showMicDialog(context, title: 'Permit Text (Voice)',
+          Padding(
+            padding: EdgeInsets.only(right: context.w(6)),
+            child: GestureDetector(
+              onTap: () {
+                _showMicDialog(context, title: 'Start Point (Voice)',
                     onDone: (text) {
                   if (text.isNotEmpty) {
-                    _ctrl.permitText.value = text;
-                    _ctrl.permitFile.value = null;
-                    _ctrl.activeAction.value = 'mic';
-                    Get.snackbar('Success', 'Voice text saved',
+                    _ctrl.endPointController.text = text;
+                    Get.snackbar('Success', 'Start point updated from voice',
                         backgroundColor: Colors.green,
-                        colorText: Colors.white,
-                        snackPosition: SnackPosition.TOP,
-                        duration: const Duration(seconds: 1));
-                  } else {
-                    Get.snackbar('Warning', 'No voice text captured',
-                        backgroundColor: Colors.orange,
                         colorText: Colors.white,
                         snackPosition: SnackPosition.TOP,
                         duration: const Duration(seconds: 1));
                   }
                 });
-              }, 'mic'),
-              _buildActionButton(context, SvgManager.cameraWhite, finalWidth,
-                  _takePhoto, 'camera'),
-            ],
+              },
+              child: Container(
+                width: context.w(26),
+                height: context.h(26),
+                decoration: BoxDecoration(
+                  color: AppColors.orange,
+                  borderRadius: BorderRadius.circular(context.r(6)),
+                ),
+                child: Icon(
+                  Icons.mic_none,
+                  color: AppColors.white,
+                  size: context.sp(18),
+                ),
+              ),
+            ),
           ),
-        ),
-      );
-    });
+        ],
+      ),
+    );
   }
+
+  Widget _buildContinueButton(BuildContext context) {
+    return Center(
+      child: Obx(() {
+        final bool isValid = _ctrl.isFormValid;
+        return CustomButton(
+          text: _ctrl.isCreating.value ? 'LOADING...' : 'CONTINUE',
+          width: _ctrl.isCreating.value ? context.w(160) : context.w(150),
+          height: context.h(50),
+          fontSize: _ctrl.isCreating.value ? context.sp(22) : context.sp(26),
+          backgroundColor: isValid ? AppColors.orange : AppColors.medGray,
+          borderRadius: 13,
+          onPressed: (_ctrl.isCreating.value || !isValid)
+              ? null
+              : () {
+                  _ctrl.submitCreateRoute();
+                },
+        );
+      }),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // STEP 2 LABEL & ACTION BUTTONS (Import section)
+  // ─────────────────────────────────────────────────────────────
+  // Action buttons and Step 2 label removed as requested.
 
   Future<void> _pickFile() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
@@ -548,6 +706,8 @@ class _HomescreenState extends State<Homescreen> {
       _ctrl.permitFile.value = File(result.files.single.path!);
       _ctrl.permitText.value = '';
       _ctrl.activeAction.value = 'import';
+      // After file picked, show the map section
+      _ctrl.showMapSection.value = true;
       Get.snackbar('Success', 'File attached successfully',
           backgroundColor: Colors.green,
           colorText: Colors.white,
@@ -556,63 +716,7 @@ class _HomescreenState extends State<Homescreen> {
     }
   }
 
-  Future<void> _takePhoto() async {
-    final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.camera);
-    if (image != null) {
-      _ctrl.permitFile.value = File(image.path);
-      _ctrl.permitText.value = '';
-      _ctrl.activeAction.value = 'camera';
-      Get.snackbar('Success', 'Photo attached successfully',
-          backgroundColor: Colors.green,
-          colorText: Colors.white,
-          snackPosition: SnackPosition.TOP,
-          duration: const Duration(seconds: 1));
-    }
-  }
 
-  void _showEditDialog(BuildContext context) {
-    TextEditingController textController =
-        TextEditingController(text: _ctrl.permitText.value);
-    Get.dialog(AlertDialog(
-      backgroundColor: AppColors.darkGray,
-      title:
-          const Text('Edit Permit Text', style: TextStyle(color: Colors.white)),
-      content: TextField(
-        controller: textController,
-        style: const TextStyle(color: Colors.white),
-        decoration: const InputDecoration(
-          hintText: 'Type your permit text...',
-          hintStyle: TextStyle(color: Colors.white54),
-        ),
-        minLines: 1,
-        maxLines: null,
-        keyboardType: TextInputType.multiline,
-      ),
-      actions: [
-        TextButton(
-            onPressed: () => Get.back(),
-            child: const Text('Cancel', style: TextStyle(color: Colors.white))),
-        TextButton(
-            onPressed: () {
-              _ctrl.permitText.value = textController.text;
-              if (textController.text.isNotEmpty) {
-                _ctrl.permitFile.value = null;
-                _ctrl.activeAction.value = 'edit';
-              } else if (_ctrl.permitFile.value == null) {
-                _ctrl.activeAction.value = '';
-              }
-              Get.back();
-              Get.snackbar('Success', 'Text saved successfully',
-                  backgroundColor: Colors.green,
-                  colorText: Colors.white,
-                  snackPosition: SnackPosition.TOP,
-                  duration: const Duration(seconds: 1));
-            },
-            child: Text('Done', style: TextStyle(color: AppColors.orange))),
-      ],
-    ));
-  }
 
   void _showMicDialog(BuildContext context,
       {required String title, required Function(String) onDone}) {
@@ -645,7 +749,8 @@ class _HomescreenState extends State<Homescreen> {
                         onError: (errorNotification) {
                           isListening.value = false;
                           if (errorNotification.errorMsg != 'error_no_match') {
-                            Get.snackbar('Speech Error', errorNotification.errorMsg,
+                            Get.snackbar(
+                                'Speech Error', errorNotification.errorMsg,
                                 backgroundColor: Colors.orange,
                                 colorText: Colors.white,
                                 duration: const Duration(seconds: 2));
@@ -668,10 +773,7 @@ class _HomescreenState extends State<Homescreen> {
                       if (baseText.isNotEmpty && !baseText.endsWith(' ')) {
                         baseText += ' ';
                       }
-                      
-                      // Delay slightly to prevent error_client on some devices
                       await Future.delayed(const Duration(milliseconds: 200));
-                      
                       _speech.listen(
                         onResult: (val) {
                           spokenText.value = baseText + val.recognizedWords;
@@ -694,8 +796,10 @@ class _HomescreenState extends State<Homescreen> {
                   radius: 30,
                   backgroundColor:
                       isListening.value ? Colors.red : AppColors.orange,
-                  child: Icon(isListening.value ? Icons.mic : Icons.mic_none,
-                      color: Colors.white, size: 30),
+                  child: Icon(
+                      isListening.value ? Icons.mic : Icons.mic_none,
+                      color: Colors.white,
+                      size: 30),
                 ),
               )
             ],
@@ -706,96 +810,18 @@ class _HomescreenState extends State<Homescreen> {
               _speech.stop();
               Get.back();
             },
-            child: const Text('Cancel', style: TextStyle(color: Colors.white))),
+            child:
+                const Text('Cancel', style: TextStyle(color: Colors.white))),
         TextButton(
             onPressed: () {
               _speech.stop();
               Get.back();
               onDone(spokenText.value);
             },
-            child:
-                const Text('Done', style: TextStyle(color: AppColors.orange))),
+            child: const Text('Done',
+                style: TextStyle(color: AppColors.orange))),
       ],
     ));
   }
 
-
-  Widget _buildContinueButton(BuildContext context) {
-    return Center(
-      child: Obx(() {
-        final bool isValid = _ctrl.isFormValid;
-        
-        return CustomButton(
-            text: _ctrl.isCreating.value ? 'LOADING...' : 'CONTINUE',
-            width: _ctrl.isCreating.value ? context.w(160) : context.w(150),
-            height: context.h(50),
-            fontSize: _ctrl.isCreating.value ? context.sp(22) : context.sp(26),
-            backgroundColor: isValid ? AppColors.orange : AppColors.medGray,
-            borderRadius: 13,
-            onPressed: (_ctrl.isCreating.value || !isValid)
-                ? null
-                : () {
-                    _ctrl.submitCreateRoute();
-                  },
-          );
-      }),
-    );
-  }
-
-  Widget _buildActionButton(BuildContext context, String svgPath, double width,
-      VoidCallback onTap, String actionType) {
-    return Obx(() {
-      final isActive = _ctrl.activeAction.value == actionType && 
-          (_ctrl.permitFile.value != null || _ctrl.permitText.value.isNotEmpty);
-      return Stack(
-        clipBehavior: Clip.none,
-        children: [
-          GestureDetector(
-            onTap: onTap,
-            child: Container(
-              width: width,
-              height: context.h(46),
-              decoration: BoxDecoration(
-                color: isActive
-                    ? AppColors.orange.withOpacity(0.5)
-                    : AppColors.orange,
-                borderRadius: BorderRadius.circular(context.r(9)),
-              ),
-              child: Center(
-                child: SvgPicture.asset(
-                  svgPath,
-                  width: context.w(35),
-                  height: context.h(35),
-                  colorFilter: const ColorFilter.mode(
-                    Colors.white,
-                    BlendMode.srcIn,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          if (isActive)
-            Positioned(
-              top: -context.h(6),
-              left: -context.w(6),
-              child: GestureDetector(
-                onTap: () {
-                  _ctrl.permitFile.value = null;
-                  _ctrl.permitText.value = '';
-                  _ctrl.activeAction.value = '';
-                },
-                child: Container(
-                  padding: EdgeInsets.all(context.s(2)),
-                  decoration: const BoxDecoration(
-                    color: Colors.red,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(Icons.close, color: Colors.white, size: context.sp(12)),
-                ),
-              ),
-            ),
-        ],
-      );
-    });
-  }
 }

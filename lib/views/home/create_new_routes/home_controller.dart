@@ -281,6 +281,14 @@ class HomeController extends GetxController {
   final Rx<File?> permitFile = Rx<File?>(null);
   final RxString activeAction = ''.obs;
 
+  // New flow state: '' = choose, 'import' = import flow, 'build' = build-your-route flow
+  final RxString choiceMode = ''.obs;
+  // Text typed when using "Build Your Route"
+  final buildRouteTextController = TextEditingController();
+  final RxString buildRouteText = ''.obs;
+  // Whether to show the map / start-end section
+  final RxBool showMapSection = false.obs;
+
   final RxList<DraftRouteModel> draftRoutes = <DraftRouteModel>[
     const DraftRouteModel(
         name: 'Downtown Loop', date: 'Apr 28, 2026', stops: 12),
@@ -390,6 +398,10 @@ class HomeController extends GetxController {
     permitFile.value = null;
     errorMsg.value = '';
     isCreating.value = false;
+    choiceMode.value = '';
+    buildRouteTextController.clear();
+    buildRouteText.value = '';
+    showMapSection.value = false;
   }
 
   Future<void> submitCreateRoute() async {
