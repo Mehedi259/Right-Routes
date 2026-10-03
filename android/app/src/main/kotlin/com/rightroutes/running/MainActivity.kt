@@ -1,4 +1,4 @@
-package com.rightroute.app
+package com.rightroutes.running
 
 
 import io.flutter.embedding.android.FlutterFragmentActivity
