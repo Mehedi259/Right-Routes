@@ -121,6 +121,10 @@ class ChooseTeamPlanController extends GetxController {
 
         if (pData['success'] == true && pData['data'] != null && pData['data']['uuid'] != null) {
           final String uuid = pData['data']['uuid'];
+          final String productId = pData['data']['plan_product_id'] ?? 'default_product_id';
+          final int timestamp = DateTime.now().millisecondsSinceEpoch;
+          final String txId = 'tx_$timestamp';
+          final String token = 'token_$timestamp';
 
           final verifyUrl = Uri.parse(HomeApiConstant.baseUrl + HomeApiConstant.purchaseVerify);
           final String platformStr = GetPlatform.isIOS ? 'ios' : 'android';
@@ -128,9 +132,12 @@ class ChooseTeamPlanController extends GetxController {
           final verifyResponse = await ApiClient.post(
             verifyUrl,
             body: dio.FormData.fromMap({
-              'plan_id': planId.toString(),
               'subscription_plan_uuid': uuid,
               'platform': platformStr,
+              'product_id': productId,
+              'transaction_id': txId,
+              'purchase_token': token,
+              if (GetPlatform.isIOS) 'receipt_data': token,
             }),
           );
 
