@@ -13,8 +13,8 @@ class ApiClient {
 
   /// Create a Dio instance pre-configured with headers and ApiLoggerInterceptor
   static Dio _createConfiguredDio({
-    Duration connectTimeout = const Duration(seconds: 15),
-    Duration receiveTimeout = const Duration(seconds: 15),
+    Duration connectTimeout = const Duration(seconds: 60),
+    Duration receiveTimeout = const Duration(seconds: 60),
   }) {
     final dio = Dio(BaseOptions(
       connectTimeout: connectTimeout,
@@ -34,8 +34,8 @@ class ApiClient {
 
   /// Factory to create a configured Dio instance with the terminal logging interceptor
   static Dio createDio({
-    Duration connectTimeout = const Duration(seconds: 15),
-    Duration receiveTimeout = const Duration(seconds: 15),
+    Duration connectTimeout = const Duration(seconds: 60),
+    Duration receiveTimeout = const Duration(seconds: 60),
   }) => _createConfiguredDio(
     connectTimeout: connectTimeout,
     receiveTimeout: receiveTimeout,

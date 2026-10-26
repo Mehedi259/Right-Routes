@@ -1,5 +1,5 @@
-﻿class HomeApiConstant {
-  static const String baseUrl = "http://54.236.158.228:8003/api/v1";
+class HomeApiConstant {
+  static const String baseUrl = "https://api.getrightroute.app/api/v1";
 
   // ---------------------  above is baseurl ------------------
 

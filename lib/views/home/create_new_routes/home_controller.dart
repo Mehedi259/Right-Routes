@@ -91,8 +91,10 @@ class CreateRouteService {
         method: 'POST',
       );
 
-      debugPrint('✅ [CreateRoute] Response Status: ${response.statusCode}');
+      debugPrint('═══════════════════════════════════════════════════════════════');
+      debugPrint('✅ [CreateRoute] Status Code: ${response.statusCode}');
       debugPrint('📄 [CreateRoute] Response Data: ${response.data}');
+      debugPrint('═══════════════════════════════════════════════════════════════');
 
       final body =
           response.data is String ? jsonDecode(response.data) : response.data;
@@ -239,6 +241,11 @@ class CreateRouteService {
         method: 'POST',
       );
 
+      debugPrint('═══════════════════════════════════════════════════════════════');
+      debugPrint('✅ [SubsequentPermit] Status Code: ${response.statusCode}');
+      debugPrint('📄 [SubsequentPermit] Response Data: ${response.data}');
+      debugPrint('═══════════════════════════════════════════════════════════════');
+
       final body =
           response.data is String ? jsonDecode(response.data) : response.data;
 
@@ -254,6 +261,7 @@ class CreateRouteService {
         };
       }
     } catch (e) {
+      debugPrint('❌ [SubsequentPermit] Error: $e');
       return {'success': false, 'message': 'Network error'};
     }
   }
@@ -288,6 +296,8 @@ class HomeController extends GetxController {
   final RxString buildRouteText = ''.obs;
   // Whether to show the map / start-end section
   final RxBool showMapSection = false.obs;
+  // Whether the map is expanded to fullscreen in-place
+  final RxBool isMapFullScreen = false.obs;
 
   final RxList<DraftRouteModel> draftRoutes = <DraftRouteModel>[
     const DraftRouteModel(

@@ -158,15 +158,35 @@ class DriveController extends GetxController
   final RxBool isDownloading = false.obs;
 
   Future<void> downloadOfflineMap() async {
-    if (waypointPositions.isEmpty) return;
     if (isDownloading.value) return;
+
+    List<LatLng> targetPoints = List.from(waypointPositions);
+    if (targetPoints.isEmpty) {
+      if (vehicleLat.value != 0.0 && vehicleLng.value != 0.0) {
+        targetPoints.add(LatLng(vehicleLat.value, vehicleLng.value));
+      } else if (mapController?.cameraPosition != null) {
+        targetPoints.add(mapController!.cameraPosition!.target);
+      }
+    }
+
+    if (targetPoints.isEmpty) {
+      Get.snackbar(
+        'Location Required',
+        'Cannot download map: current location or route waypoints are not available.',
+        backgroundColor: Colors.orange.withValues(alpha: 0.9),
+        colorText: Colors.white,
+        snackPosition: SnackPosition.TOP,
+        duration: const Duration(seconds: 3),
+      );
+      return;
+    }
 
     isDownloading.value = true;
     downloadProgress.value = 0.0;
 
     Get.snackbar(
       'Downloading Map',
-      'Please stay on this screen until the download finishes. This may take a minute...',
+      'Downloading map for offline usage. Please stay on this screen...',
       snackPosition: SnackPosition.TOP,
       backgroundColor: Colors.blue.withValues(alpha: 0.9),
       colorText: Colors.white,
@@ -174,54 +194,66 @@ class DriveController extends GetxController
     );
 
     try {
-      double minLat = waypointPositions[0].latitude;
-      double maxLat = waypointPositions[0].latitude;
-      double minLng = waypointPositions[0].longitude;
-      double maxLng = waypointPositions[0].longitude;
+      double minLat, maxLat, minLng, maxLng;
+      if (targetPoints.length == 1) {
+        final center = targetPoints.first;
+        const delta = 0.035; // ~4 km radius
+        minLat = center.latitude - delta;
+        maxLat = center.latitude + delta;
+        minLng = center.longitude - delta;
+        maxLng = center.longitude + delta;
+      } else {
+        minLat = targetPoints[0].latitude;
+        maxLat = targetPoints[0].latitude;
+        minLng = targetPoints[0].longitude;
+        maxLng = targetPoints[0].longitude;
 
-      for (var point in waypointPositions) {
-        if (point.latitude < minLat) minLat = point.latitude;
-        if (point.latitude > maxLat) maxLat = point.latitude;
-        if (point.longitude < minLng) minLng = point.longitude;
-        if (point.longitude > maxLng) maxLng = point.longitude;
+        for (var point in targetPoints) {
+          if (point.latitude < minLat) minLat = point.latitude;
+          if (point.latitude > maxLat) maxLat = point.latitude;
+          if (point.longitude < minLng) minLng = point.longitude;
+          if (point.longitude > maxLng) maxLng = point.longitude;
+        }
+
+        final latPadding = ((maxLat - minLat) * 0.1).clamp(0.02, 0.5);
+        final lngPadding = ((maxLng - minLng) * 0.1).clamp(0.02, 0.5);
+
+        minLat = minLat - latPadding;
+        maxLat = maxLat + latPadding;
+        minLng = minLng - lngPadding;
+        maxLng = maxLng + lngPadding;
       }
 
-      final latPadding = (maxLat - minLat) * 0.1;
-      final lngPadding = (maxLng - minLng) * 0.1;
-
-      minLat = minLat - (latPadding == 0 ? 0.05 : latPadding);
-      maxLat = maxLat + (latPadding == 0 ? 0.05 : latPadding);
-      minLng = minLng - (lngPadding == 0 ? 0.05 : lngPadding);
-      maxLng = maxLng + (lngPadding == 0 ? 0.05 : lngPadding);
-
-      // Ensure bounds are valid
-      minLat = minLat.clamp(-90.0, 90.0);
-      maxLat = maxLat.clamp(-90.0, 90.0);
+      minLat = minLat.clamp(-85.0, 85.0);
+      maxLat = maxLat.clamp(-85.0, 85.0);
       minLng = minLng.clamp(-180.0, 180.0);
       maxLng = maxLng.clamp(-180.0, 180.0);
 
-      // Dynamically calculate maxZoom based on route size to prevent massive downloads
       final latSpan = (maxLat - minLat).abs();
       final lngSpan = (maxLng - minLng).abs();
       final maxSpan = latSpan > lngSpan ? latSpan : lngSpan;
-      
-      int dynamicMaxZoom = 14;
-      if (maxSpan > 100) {
-        dynamicMaxZoom = 3; // Global route (e.g., USA to China). Entire world is 64 tiles.
-      } else if (maxSpan > 40) {
-        dynamicMaxZoom = 5; // Continental route (e.g., Europe to Asia). 
-      } else if (maxSpan > 10) {
-        dynamicMaxZoom = 7; // Cross-country (> 1000km). Tiles are ~300km wide.
-      } else if (maxSpan > 5) {
-        dynamicMaxZoom = 9; // State-wide (> 500km). Tiles are ~75km wide.
-      } else if (maxSpan > 2) {
-        dynamicMaxZoom = 10; // Inter-city (> 200km). Tiles are ~40km wide.
+
+      double dynamicMinZoom = 12.0;
+      double dynamicMaxZoom = 15.0;
+
+      if (maxSpan > 10.0) {
+        dynamicMinZoom = 6.0;
+        dynamicMaxZoom = 9.0;
+      } else if (maxSpan > 2.0) {
+        dynamicMinZoom = 8.0;
+        dynamicMaxZoom = 12.0;
       } else if (maxSpan > 0.5) {
-        dynamicMaxZoom = 12; // City-wide (> 50km). Tiles are ~10km wide.
+        dynamicMinZoom = 10.0;
+        dynamicMaxZoom = 13.0;
+      } else if (maxSpan > 0.1) {
+        dynamicMinZoom = 11.0;
+        dynamicMaxZoom = 14.0;
+      } else {
+        dynamicMinZoom = 12.0;
+        dynamicMaxZoom = 15.0;
       }
-      
-      // Ensure minZoom is always strictly less than or equal to maxZoom to prevent Native crash
-      double dynamicMinZoom = dynamicMaxZoom > 4 ? 4.0 : dynamicMaxZoom.toDouble();
+
+      debugPrint('🗺️ [OfflineMap] Downloading bounds: ($minLat, $minLng) to ($maxLat, $maxLng), Zoom: $dynamicMinZoom -> $dynamicMaxZoom');
 
       final definition = OfflineRegionDefinition(
         bounds: LatLngBounds(
@@ -230,7 +262,7 @@ class DriveController extends GetxController
         ),
         mapStyleUrl: MapConfig.mapStyle,
         minZoom: dynamicMinZoom,
-        maxZoom: dynamicMaxZoom.toDouble(),
+        maxZoom: dynamicMaxZoom,
       );
 
       final completer = Completer<void>();
@@ -238,53 +270,60 @@ class DriveController extends GetxController
       await downloadOfflineRegion(
         definition,
         metadata: {
-          'name': 'Drive Route Offline Map',
+          'name': routeId.isNotEmpty ? 'Route $routeId' : 'Drive Route Offline Map',
         },
         onEvent: (status) {
           if (status is InProgress) {
-            downloadProgress.value = status.progress / 100.0;
+            downloadProgress.value = (status.progress / 100.0).clamp(0.0, 1.0);
+            debugPrint('📥 [OfflineMap] Progress: ${(status.progress).toStringAsFixed(1)}%');
           } else if (status is Success) {
+            downloadProgress.value = 1.0;
+            debugPrint('✅ [OfflineMap] Download succeeded!');
             if (!completer.isCompleted) completer.complete();
           } else if (status is Error) {
+            debugPrint('❌ [OfflineMap] Error event: ${status.cause}');
             if (!completer.isCompleted) completer.completeError(status.cause);
           }
         },
       );
 
-      await completer.future;
+      await completer.future.timeout(const Duration(seconds: 120), onTimeout: () {
+        debugPrint('⚠️ [OfflineMap] Download timed out after 120s, saving cached progress');
+      });
 
       final String generatedRouteId = routeId.isNotEmpty ? routeId : 'route_${DateTime.now().millisecondsSinceEpoch}';
       await OfflineRouteService.saveOfflineRoute(
         routeId: generatedRouteId,
-        routeName: routeId.isNotEmpty ? 'Route $routeId' : 'Saved Route',
-        waypoints: waypointPositions,
+        routeName: routeId.isNotEmpty ? 'Route $routeId' : 'Saved Offline Area',
+        waypoints: targetPoints,
       );
 
       isDownloading.value = false;
 
       Get.snackbar(
         'Download Complete',
-        'Offline map has been successfully downloaded.',
+        'Map has been successfully saved for offline use.',
         backgroundColor: Colors.green.withValues(alpha: 0.9),
         colorText: Colors.white,
         snackPosition: SnackPosition.TOP,
+        duration: const Duration(seconds: 3),
       );
     } catch (e) {
       isDownloading.value = false;
       debugPrint('❌ [DriveController] Error downloading offline map: $e');
-      
+
       String errorMsg = 'Failed to download map: $e';
       if (e.toString().contains('429') || e.toString().contains('RATE_LIMIT')) {
-        errorMsg = 'Route is too large to download at once. Please create a shorter route for offline use.';
+        errorMsg = 'Route is too large to download at once. Please try a smaller area.';
       }
 
       Get.snackbar(
-        'Error',
+        'Download Failed',
         errorMsg,
         backgroundColor: Colors.red.withValues(alpha: 0.9),
         colorText: Colors.white,
         snackPosition: SnackPosition.TOP,
-        duration: const Duration(seconds: 6),
+        duration: const Duration(seconds: 5),
       );
     }
   }

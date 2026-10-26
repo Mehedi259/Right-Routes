@@ -34,6 +34,7 @@ class _HomeScreenMapState extends State<HomeScreenMap> with WidgetsBindingObserv
   double _routeDistanceMeters = 0.0;
   int _pickingState = 0; // 0=Start, 1=End, 2=Done
   bool _isLocationDisabled = false;
+  bool _isUpdatingFromMap = false;
 
   Timer? _debounceEndGeocode;
   
@@ -123,6 +124,10 @@ class _HomeScreenMapState extends State<HomeScreenMap> with WidgetsBindingObserv
   }
 
   void _onEndPointChanged() {
+    if (_isUpdatingFromMap) {
+      _isUpdatingFromMap = false;
+      return;
+    }
     final text = _ctrl.endPointController.text.trim();
     if (text.isEmpty) return;
 
@@ -258,8 +263,13 @@ class _HomeScreenMapState extends State<HomeScreenMap> with WidgetsBindingObserv
       );
     }
 
+    final bool isFull = widget.isFullScreen || _ctrl.isMapFullScreen.value;
+    final double mapHeight = isFull
+        ? (widget.isFullScreen ? double.infinity : (MediaQuery.of(context).size.height * 0.78))
+        : 300.h;
+
     return Container(
-      height: widget.isFullScreen ? double.infinity : 300.h,
+      height: mapHeight,
       width: double.infinity,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(4.r),
@@ -365,18 +375,12 @@ class _HomeScreenMapState extends State<HomeScreenMap> with WidgetsBindingObserv
             top: 10.h,
             right: 10.w,
             child: InkWell(
-              onTap: () async {
+              onTap: () {
                 if (widget.isFullScreen) {
                   Get.back();
                 } else {
-                  await Get.to(
-                    () => Scaffold(
-                      body: SafeArea(
-                        child: HomeScreenMap(isFullScreen: true),
-                      ),
-                    ),
-                  );
-                  _syncMarkersFromController();
+                  _ctrl.isMapFullScreen.value = !_ctrl.isMapFullScreen.value;
+                  if (mounted) setState(() {});
                 }
               },
               child: Container(
@@ -392,7 +396,7 @@ class _HomeScreenMapState extends State<HomeScreenMap> with WidgetsBindingObserv
                   ],
                 ),
                 child: Icon(
-                  widget.isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen,
+                  isFull ? Icons.fullscreen_exit : Icons.fullscreen,
                   color: Colors.black87,
                 ),
               ),
@@ -937,16 +941,36 @@ class _HomeScreenMapState extends State<HomeScreenMap> with WidgetsBindingObserv
       if (point.longitude > maxLng) maxLng = point.longitude;
     }
 
+    final double latSpan = (maxLat - minLat).abs();
+    final double lngSpan = (maxLng - minLng).abs();
+
+    // If points are essentially identical or extremely close, use a fixed safe zoom to prevent blank map
+    if (latSpan < 0.005 && lngSpan < 0.005) {
+      await mapController!.animateCamera(
+        CameraUpdate.newCameraPosition(
+          CameraPosition(
+            target: LatLng((minLat + maxLat) / 2, (minLng + maxLng) / 2),
+            zoom: 14.5,
+          ),
+        ),
+        duration: const Duration(milliseconds: 800),
+      );
+      return;
+    }
+
+    final double padLat = (latSpan * 0.15).clamp(0.005, 0.5);
+    final double padLng = (lngSpan * 0.15).clamp(0.005, 0.5);
+
     await mapController!.animateCamera(
       CameraUpdate.newLatLngBounds(
         LatLngBounds(
-          southwest: LatLng(minLat, minLng),
-          northeast: LatLng(maxLat, maxLng),
+          southwest: LatLng(minLat - padLat, minLng - padLng),
+          northeast: LatLng(maxLat + padLat, maxLng + padLng),
         ),
-        left: 50,
-        right: 50,
-        top: 50,
-        bottom: 50,
+        left: 40,
+        right: 40,
+        top: 40,
+        bottom: 40,
       ),
       duration: const Duration(milliseconds: 1000), // Smooth animation
     );

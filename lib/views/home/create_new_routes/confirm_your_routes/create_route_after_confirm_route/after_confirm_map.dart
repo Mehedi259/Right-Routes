@@ -660,16 +660,35 @@ class _AfterConfirmMapState extends State<AfterConfirmMap> {
       if (point.longitude > maxLng) maxLng = point.longitude;
     }
 
+    final double latSpan = (maxLat - minLat).abs();
+    final double lngSpan = (maxLng - minLng).abs();
+
+    if (latSpan < 0.005 && lngSpan < 0.005) {
+      await mapController!.animateCamera(
+        CameraUpdate.newCameraPosition(
+          CameraPosition(
+            target: LatLng((minLat + maxLat) / 2, (minLng + maxLng) / 2),
+            zoom: 14.5,
+          ),
+        ),
+        duration: const Duration(milliseconds: 800),
+      );
+      return;
+    }
+
+    final double padLat = (latSpan * 0.15).clamp(0.005, 0.5);
+    final double padLng = (lngSpan * 0.15).clamp(0.005, 0.5);
+
     await mapController!.animateCamera(
       CameraUpdate.newLatLngBounds(
         LatLngBounds(
-          southwest: LatLng(minLat, minLng),
-          northeast: LatLng(maxLat, maxLng),
+          southwest: LatLng(minLat - padLat, minLng - padLng),
+          northeast: LatLng(maxLat + padLat, maxLng + padLng),
         ),
-        left: 50,
-        right: 50,
-        top: 50,
-        bottom: 50,
+        left: 40,
+        right: 40,
+        top: 40,
+        bottom: 40,
       ),
       duration: const Duration(milliseconds: 1000), // Smooth animation
     );

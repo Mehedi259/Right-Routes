@@ -79,43 +79,58 @@ class _HomescreenState extends State<Homescreen> {
           right: context.w(20),
           bottom: context.h(20),
         ),
-        child: Obx(() => Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(height: context.s(15)),
-                _buildTitle(context),
-                SizedBox(height: context.h(6)),
-                _buildPermitTitle(context),
-                SizedBox(height: context.h(12)),
-
-                // ── STEP 1: Choose one ──────────────────────────
-                if (_ctrl.choiceMode.value == '' && !_ctrl.showMapSection.value)
-                  _buildChooseSection(context),
-
-                // ── Import Permit selected → show import actions ─
-                if (_ctrl.choiceMode.value == 'import' && !_ctrl.showMapSection.value)
-                  _buildImportSection(context),
-
-                // ── Build Your Route selected → text field + NEXT ─
-                if (_ctrl.choiceMode.value == 'build' && !_ctrl.showMapSection.value)
-                  _buildBuildRouteSection(context),
-
-                // ── Map section (after permit imported or NEXT pressed) ─
-                if (_ctrl.showMapSection.value) ...[
-                  _buildBackButton(context),
-                  SizedBox(height: context.h(8)),
-                  _buildStep1Label(context),
-                  SizedBox(height: context.h(8)),
-                  _buildEndPointField(context),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Obx(() {
+              if (_ctrl.isMapFullScreen.value) return const SizedBox.shrink();
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(height: context.s(15)),
+                  _buildTitle(context),
+                  SizedBox(height: context.h(6)),
+                  _buildPermitTitle(context),
                   SizedBox(height: context.h(12)),
-                  const HomeScreenMap(),
-                  SizedBox(height: context.h(20)),
-                  _buildContinueButton(context),
                 ],
+              );
+            }),
 
-                SizedBox(height: context.h(50)),
-              ],
-            )),
+            // ── STEP 1: Choose one ──────────────────────────
+            Obx(() {
+              if (_ctrl.showMapSection.value) return const SizedBox.shrink();
+              if (_ctrl.choiceMode.value == '') return _buildChooseSection(context);
+              if (_ctrl.choiceMode.value == 'import') return _buildImportSection(context);
+              if (_ctrl.choiceMode.value == 'build') return _buildBuildRouteSection(context);
+              return const SizedBox.shrink();
+            }),
+
+            // ── Map section (after permit imported or NEXT pressed) ─
+            Obx(() {
+              if (!_ctrl.showMapSection.value) return const SizedBox.shrink();
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (!_ctrl.isMapFullScreen.value) ...[
+                    _buildBackButton(context),
+                    SizedBox(height: context.h(8)),
+                    _buildStep1Label(context),
+                    SizedBox(height: context.h(8)),
+                    _buildEndPointField(context),
+                    SizedBox(height: context.h(12)),
+                  ],
+                  const HomeScreenMap(),
+                  if (!_ctrl.isMapFullScreen.value) ...[
+                    SizedBox(height: context.h(20)),
+                    _buildContinueButton(context),
+                  ],
+                ],
+              );
+            }),
+
+            SizedBox(height: context.h(50)),
+          ],
+        ),
       ),
     );
   }
@@ -140,60 +155,67 @@ class _HomescreenState extends State<Homescreen> {
       ),
       child: SizedBox(
         height: availableHeight,
-        child: Obx(() => Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ── LEFT COLUMN ────────────────────────────────
-                SizedBox(
-                  width: MediaQuery.of(context).size.width * 0.40,
-                  child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(height: context.s(10)),
-                        _buildTitle(context),
-                        SizedBox(height: context.s(6)),
-                        _buildPermitTitle(context),
-                        SizedBox(height: context.s(12)),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── LEFT COLUMN ────────────────────────────────
+            Obx(() {
+              if (_ctrl.isMapFullScreen.value && _ctrl.showMapSection.value) {
+                return const SizedBox.shrink();
+              }
+              return SizedBox(
+                width: MediaQuery.of(context).size.width * 0.40,
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(height: context.s(10)),
+                      _buildTitle(context),
+                      SizedBox(height: context.s(6)),
+                      _buildPermitTitle(context),
+                      SizedBox(height: context.s(12)),
 
-                        if (_ctrl.choiceMode.value == '' && !_ctrl.showMapSection.value)
-                          _buildChooseSection(context),
-                        if (_ctrl.choiceMode.value == 'import' && !_ctrl.showMapSection.value)
-                          _buildImportSection(context),
-                        if (_ctrl.choiceMode.value == 'build' && !_ctrl.showMapSection.value)
-                          _buildBuildRouteSection(context),
-                        if (_ctrl.showMapSection.value) ...[
-                          _buildBackButton(context),
-                          SizedBox(height: context.s(8)),
-                          _buildStep1Label(context),
-                          SizedBox(height: context.s(8)),
-                          _buildEndPointField(context),
-                          SizedBox(height: context.s(16)),
-                          _buildContinueButton(context),
-                        ],
-                        SizedBox(height: context.s(80)),
+                      if (_ctrl.choiceMode.value == '' && !_ctrl.showMapSection.value)
+                        _buildChooseSection(context),
+                      if (_ctrl.choiceMode.value == 'import' && !_ctrl.showMapSection.value)
+                        _buildImportSection(context),
+                      if (_ctrl.choiceMode.value == 'build' && !_ctrl.showMapSection.value)
+                        _buildBuildRouteSection(context),
+                      if (_ctrl.showMapSection.value) ...[
+                        _buildBackButton(context),
+                        SizedBox(height: context.s(8)),
+                        _buildStep1Label(context),
+                        SizedBox(height: context.s(8)),
+                        _buildEndPointField(context),
+                        SizedBox(height: context.s(16)),
+                        _buildContinueButton(context),
                       ],
-                    ),
+                      SizedBox(height: context.s(80)),
+                    ],
                   ),
                 ),
+              );
+            }),
 
-                SizedBox(width: context.w(10)),
+            SizedBox(width: context.w(10)),
 
-                // ── RIGHT COLUMN — Map ─────────────────────────
-                if (_ctrl.showMapSection.value)
-                  Expanded(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(context.r(12)),
-                      child: const SizedBox(
-                        width: double.infinity,
-                        height: double.infinity,
-                        child: HomeScreenMap(),
-                      ),
-                    ),
+            // ── RIGHT COLUMN — Map ─────────────────────────
+            Obx(() {
+              if (!_ctrl.showMapSection.value) return const SizedBox.shrink();
+              return Expanded(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(context.r(12)),
+                  child: const SizedBox(
+                    width: double.infinity,
+                    height: double.infinity,
+                    child: HomeScreenMap(),
                   ),
-              ],
-            )),
+                ),
+              );
+            }),
+          ],
+        ),
       ),
     );
   }
@@ -672,16 +694,30 @@ class _HomescreenState extends State<Homescreen> {
       allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
     );
     if (result != null && result.files.single.path != null) {
-      _ctrl.permitFile.value = File(result.files.single.path!);
+      final file = File(result.files.single.path!);
+      _ctrl.permitFile.value = file;
       _ctrl.permitText.value = '';
       _ctrl.activeAction.value = 'import';
       // After file picked, show the map section
       _ctrl.showMapSection.value = true;
-      Get.snackbar('Success', 'File attached successfully',
-          backgroundColor: Colors.green,
-          colorText: Colors.white,
-          snackPosition: SnackPosition.TOP,
-          duration: const Duration(seconds: 1));
+
+      final fileName = file.path.split('/').last;
+      final fileSizeBytes = file.existsSync() ? file.lengthSync() : 0;
+      debugPrint('═══════════════════════════════════════════════════════════════');
+      debugPrint('📎 [Permit File Attached] $fileName');
+      debugPrint('📍 Local Path: ${file.path}');
+      debugPrint('📊 File Size: ${(fileSizeBytes / 1024).toStringAsFixed(1)} KB');
+      debugPrint('ℹ️ [Next Step] Confirm Start & End points on the map, then tap "CONTINUE" to upload to backend OCR.');
+      debugPrint('═══════════════════════════════════════════════════════════════');
+
+      Get.snackbar(
+        'Permit Attached',
+        'Attached $fileName. Set your Start & End points, then tap CONTINUE to process OCR.',
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.TOP,
+        duration: const Duration(seconds: 3),
+      );
     }
   }
 

@@ -379,14 +379,24 @@ class _CreateRouteAfterConfirmRouteState
       allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
     );
     if (result != null && result.files.single.path != null) {
-      _ctrl.permitFile.value = File(result.files.single.path!);
+      final file = File(result.files.single.path!);
+      _ctrl.permitFile.value = file;
       _ctrl.permitText.value = '';
       _ctrl.activeAction.value = 'import';
-      Get.snackbar('Success', 'File attached successfully',
+
+      final fileName = file.path.split('/').last;
+      final fileSizeBytes = file.existsSync() ? file.lengthSync() : 0;
+      debugPrint('═══════════════════════════════════════════════════════════════');
+      debugPrint('📎 [Subsequent Permit Attached] $fileName');
+      debugPrint('📍 Local Path: ${file.path}');
+      debugPrint('📊 File Size: ${(fileSizeBytes / 1024).toStringAsFixed(1)} KB');
+      debugPrint('═══════════════════════════════════════════════════════════════');
+
+      Get.snackbar('Permit Attached', 'Attached $fileName',
           backgroundColor: Colors.green,
           colorText: Colors.white,
           snackPosition: SnackPosition.TOP,
-          duration: const Duration(seconds: 1));
+          duration: const Duration(seconds: 2));
     }
   }
 

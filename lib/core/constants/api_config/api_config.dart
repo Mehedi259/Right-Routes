@@ -15,15 +15,15 @@ class ApiConfig {
       // Development URLs
       switch (currentDevice) {
         case DeviceType.androidEmulator:
-          return 'http://54.236.158.228:8003/api/v1'; // Android emulator
+          return 'https://api.getrightroute.app/api/v1'; // Android emulator
         case DeviceType.iosSimulator:
-          return 'http://54.236.158.228:8003/api/v1'; // iOS simulator
+          return 'https://api.getrightroute.app/api/v1'; // iOS simulator
         case DeviceType.realDevice:
-          return 'http://54.236.158.228:8003/api/v1'; // Your actual backend IP
+          return 'https://api.getrightroute.app/api/v1'; // Your actual backend IP
       }
     } else {
       // Production URL
-      return 'https://api.rightroutes.com'; // Replace with your production domain
+      return 'https://api.getrightroute.app/api/v1';
     }
   }
 
