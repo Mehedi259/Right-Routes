@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:get/get.dart' hide FormData, Response;
+import '../../../core/constants/services/api_client.dart';
 import '../../../core/constants/services/auth_service.dart';
 import '../../../core/constants/api_config/api_config.dart';
 import '../../home/account_screen/account_screen_for_team.dart';
@@ -13,15 +14,7 @@ class ChangeEmailService {
       // 🔑 AuthService থেকে Access Token নিচ্ছি
       String? token = await AuthService.getAccessToken();
 
-      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      print('📤 API REQUEST (DIO)');
-      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      print('🌐 URL: ${ApiConfig.fullChangeEmailUrl}');
-      print('📧 New Email: $newEmail');
-      print('🔑 Token: ${token ?? "❌ No token found"}');
-      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-
-      final dio = Dio();
+      final dio = ApiClient.createDio();
       final formData = FormData.fromMap({
         'new_email': newEmail,
       });

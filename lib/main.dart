@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:dio/dio.dart';
+import 'core/constants/services/api_client.dart';
 import 'core/constants/services/auth_service.dart';
 import 'core/constants/services/device_storage_service.dart';
 import 'features/auth/data/repositories/auth_repository_impl.dart';
@@ -26,11 +27,9 @@ Future<void> main() async {
   Get.put(AuthController(
     authRepository: AuthRepositoryImpl(
       remoteDataSource: AuthRemoteDataSourceImpl(
-        dio: Dio(
-          BaseOptions(
-            connectTimeout: const Duration(seconds: 5),
-            receiveTimeout: const Duration(seconds: 5),
-          ),
+        dio: ApiClient.createDio(
+          connectTimeout: const Duration(seconds: 15),
+          receiveTimeout: const Duration(seconds: 15),
         ),
       ),
     ),

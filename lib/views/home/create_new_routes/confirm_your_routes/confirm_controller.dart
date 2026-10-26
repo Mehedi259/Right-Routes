@@ -15,6 +15,7 @@ import 'package:right_routes/utils/map_icon_util.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:dio/dio.dart' as dio;
+import 'package:right_routes/core/constants/services/api_logger_interceptor.dart';
 
 class PermitState {
   final String permitId;
@@ -629,8 +630,18 @@ class ConfirmRouteController extends GetxController {
 
     for (int attempt = 0; attempt <= _osrmMaxRetries; attempt++) {
       try {
+        final stopwatch = Stopwatch()..start();
         final response = await http.get(uri,
             headers: {'User-Agent': 'RightRoutes/1.0'});
+        stopwatch.stop();
+
+        ApiLogger.logHttp(
+          method: 'GET',
+          url: uri,
+          statusCode: response.statusCode,
+          responseBody: response.body,
+          duration: stopwatch.elapsed,
+        );
 
         if (response.statusCode == 200) {
           final data = json.decode(response.body);
@@ -660,6 +671,12 @@ class ConfirmRouteController extends GetxController {
           }
         }
       } catch (e) {
+        ApiLogger.logHttp(
+          method: 'GET',
+          url: uri,
+          statusCode: 0,
+          error: e.toString(),
+        );
         debugPrint('OSRM attempt ${attempt + 1} failed: $e');
         if (attempt < _osrmMaxRetries) {
           await Future.delayed(Duration(milliseconds: 500 * (attempt + 1)));

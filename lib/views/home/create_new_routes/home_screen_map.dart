@@ -11,6 +11,8 @@ import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:right_routes/core/constants/services/api_client.dart';
+import 'package:right_routes/core/constants/services/api_logger_interceptor.dart';
+import 'package:right_routes/core/constants/api_config/map_config.dart';
 import 'package:right_routes/views/home/create_new_routes/home_controller.dart';
 import 'package:right_routes/utils/map_icon_util.dart';
 
@@ -266,9 +268,7 @@ class _HomeScreenMapState extends State<HomeScreenMap> with WidgetsBindingObserv
       child: Stack(
         children: [
           MapLibreMap(
-            styleString:
-                // 'https://api.maptiler.com/maps/openstreetmap/style.json?key=N2YLLvhtmoQzVSf9VfF9',
-                'https://api.maptiler.com/maps/streets-v2/style.json?key=N2YLLvhtmoQzVSf9VfF9',
+            styleString: MapConfig.mapStyle,
             initialCameraPosition: CameraPosition(
               target: _initialPosition!,
               zoom: 14.0,
@@ -963,7 +963,17 @@ class _HomeScreenMapState extends State<HomeScreenMap> with WidgetsBindingObserv
 
     for (int attempt = 0; attempt <= 2; attempt++) {
       try {
+        final stopwatch = Stopwatch()..start();
         final response = await http.get(uri).timeout(const Duration(seconds: 10));
+        stopwatch.stop();
+
+        ApiLogger.logHttp(
+          method: 'GET',
+          url: uri,
+          statusCode: response.statusCode,
+          responseBody: response.body,
+          duration: stopwatch.elapsed,
+        );
 
         if (response.statusCode == 200) {
           final data = json.decode(response.body);
@@ -982,6 +992,12 @@ class _HomeScreenMapState extends State<HomeScreenMap> with WidgetsBindingObserv
           }
         }
       } catch (e) {
+        ApiLogger.logHttp(
+          method: 'GET',
+          url: uri,
+          statusCode: 0,
+          error: e.toString(),
+        );
         debugPrint('OSRM attempt ${attempt + 1} failed: $e');
         if (attempt < 2) {
           await Future.delayed(Duration(milliseconds: 500 * (attempt + 1)));

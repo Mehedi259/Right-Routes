@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:get/get.dart' hide Response, FormData, MultipartFile;
 import 'auth_service.dart';
+import 'api_logger_interceptor.dart';
 import '../api_config/api_config.dart';
 import '../../../core/routes/all_routes.dart';
 
@@ -8,17 +9,40 @@ import '../../../core/routes/all_routes.dart';
 /// Central API Client with Token Interception & Refresh Logic
 /// ═══════════════════════════════════════════════════════════
 class ApiClient {
-  static final Dio _dio = Dio(BaseOptions(
-    connectTimeout: const Duration(seconds: 15),
-    receiveTimeout: const Duration(seconds: 15),
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    },
-    // Prevent Dio from throwing exceptions for status codes < 500,
-    // so we can manually parse API error responses (e.g., 400, 422).
-    validateStatus: (status) => status != null && status < 500,
-  ));
+  static final Dio _dio = _createConfiguredDio();
+
+  /// Create a Dio instance pre-configured with headers and ApiLoggerInterceptor
+  static Dio _createConfiguredDio({
+    Duration connectTimeout = const Duration(seconds: 15),
+    Duration receiveTimeout = const Duration(seconds: 15),
+  }) {
+    final dio = Dio(BaseOptions(
+      connectTimeout: connectTimeout,
+      receiveTimeout: receiveTimeout,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      // Prevent Dio from throwing exceptions for status codes < 500,
+      // so we can manually parse API error responses (e.g., 400, 422).
+      validateStatus: (status) => status != null && status < 500,
+    ));
+
+    dio.interceptors.add(ApiLoggerInterceptor());
+    return dio;
+  }
+
+  /// Factory to create a configured Dio instance with the terminal logging interceptor
+  static Dio createDio({
+    Duration connectTimeout = const Duration(seconds: 15),
+    Duration receiveTimeout = const Duration(seconds: 15),
+  }) => _createConfiguredDio(
+    connectTimeout: connectTimeout,
+    receiveTimeout: receiveTimeout,
+  );
+
+  /// Shared Dio instance with ApiLoggerInterceptor
+  static Dio get dio => _dio;
 
   static bool _isRefreshing = false;
 

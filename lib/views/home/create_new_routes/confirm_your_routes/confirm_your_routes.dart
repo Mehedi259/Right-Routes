@@ -15,14 +15,12 @@ import 'package:right_routes/core/constants/api_config/home_api_constant/home_ap
 import 'package:right_routes/views/home/create_new_routes/confirm_your_routes/create_route_after_confirm_route/after_confirm_controller.dart';
 import 'package:right_routes/views/home/create_new_routes/home_controller.dart';
 import 'package:right_routes/global_widgets/custom_info_dialog.dart';
+import 'package:right_routes/core/constants/api_config/map_config.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import '../drive_screen/drive_screen.dart';
 
 // ─── Map Style ────────────────────────────────────────────────────────────────
-const _kMapTilerKey = 'N2YLLvhtmoQzVSf9VfF9';
-const _kMapStyle =
-    // 'https://api.maptiler.com/maps/openstreetmap/style.json?key=$_kMapTilerKey';
-    'https://api.maptiler.com/maps/streets-v2/style.json?key=$_kMapTilerKey';
+const _kMapStyle = MapConfig.mapStyle;
 
 class _C {
   static const darkBg = Color(0xFF0D1B2A);

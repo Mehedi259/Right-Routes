@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:right_routes/global_widgets/custom_navbar.dart';
 import 'package:right_routes/utils/responsive_ext.dart';
+import 'package:right_routes/core/constants/api_config/map_config.dart';
 import 'drive_controller.dart';
 
 class DriveRouteMap extends StatelessWidget {
@@ -24,8 +25,7 @@ class DriveRouteMap extends StatelessWidget {
               if (ctrl.isTracking.value) ctrl.isTracking.value = false;
             },
             child: MapLibreMap(
-              styleString:
-                  'https://api.maptiler.com/maps/streets-v2/style.json?key=N2YLLvhtmoQzVSf9VfF9',
+              styleString: MapConfig.mapStyle,
               initialCameraPosition: CameraPosition(
                 target: LatLng(ctrl.vehicleLat.value, ctrl.vehicleLng.value),
                 zoom: 14.0,

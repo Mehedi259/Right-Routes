@@ -10,6 +10,8 @@ import 'package:permission_handler/permission_handler.dart';
 import 'dart:ui' as ui;
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:right_routes/core/constants/services/api_logger_interceptor.dart';
+import 'package:right_routes/core/constants/api_config/map_config.dart';
 import 'package:right_routes/core/constants/services/route_permit_service.dart';
 import 'package:right_routes/core/constants/services/offline_route_service.dart';
 import 'package:right_routes/utils/map_icon_util.dart';
@@ -226,8 +228,7 @@ class DriveController extends GetxController
           southwest: LatLng(minLat, minLng),
           northeast: LatLng(maxLat, maxLng),
         ),
-        mapStyleUrl:
-            'https://api.maptiler.com/maps/streets-v2/style.json?key=N2YLLvhtmoQzVSf9VfF9',
+        mapStyleUrl: MapConfig.mapStyle,
         minZoom: dynamicMinZoom,
         maxZoom: dynamicMaxZoom.toDouble(),
       );
@@ -633,12 +634,23 @@ class DriveController extends GetxController
 
     Future<List<LatLng>?> fetchOSRMRoute(List<LatLng> points) async {
       if (points.length < 2) return null;
+      final coords = points.map((p) => '${p.longitude},${p.latitude}').join(';');
+      final uri = Uri.parse('https://router.project-osrm.org/route/v1/driving/$coords?overview=full&geometries=geojson');
       try {
-        final coords = points.map((p) => '${p.longitude},${p.latitude}').join(';');
+        final stopwatch = Stopwatch()..start();
         final res = await http.get(
-          Uri.parse('https://router.project-osrm.org/route/v1/driving/$coords?overview=full&geometries=geojson'),
+          uri,
           headers: {'User-Agent': 'RightRoutes/1.0'},
         ).timeout(const Duration(seconds: 15));
+        stopwatch.stop();
+
+        ApiLogger.logHttp(
+          method: 'GET',
+          url: uri,
+          statusCode: res.statusCode,
+          responseBody: res.body,
+          duration: stopwatch.elapsed,
+        );
 
         if (res.statusCode == 200) {
           final data = json.decode(res.body);
@@ -654,6 +666,12 @@ class DriveController extends GetxController
           }
         }
       } catch (e) {
+        ApiLogger.logHttp(
+          method: 'GET',
+          url: uri,
+          statusCode: 0,
+          error: e.toString(),
+        );
         debugPrint('OSRM fetch error: $e');
       }
       return null;
