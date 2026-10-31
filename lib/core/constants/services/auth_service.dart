@@ -229,6 +229,21 @@ class AuthService {
   }
 
   // ═══════════════════════════════════════════════════════════
+  // 👥 TEAM PLAN STATUS
+  // ═══════════════════════════════════════════════════════════
+
+  static Future<bool> saveIsTeamPlan(bool isTeam) async {
+    print('💾 Saving Team Plan Status: $isTeam');
+    return await _prefs?.setBool('is_team_plan', isTeam) ?? false;
+  }
+
+  static bool getIsTeamPlan() {
+    final isTeam = _prefs?.getBool('is_team_plan') ?? false;
+    print('📤 Getting Team Plan Status: $isTeam');
+    return isTeam;
+  }
+
+  // ═══════════════════════════════════════════════════════════
   // 📧 EMAIL CHANGE MANAGEMENT
   // ═══════════════════════════════════════════════════════════
 

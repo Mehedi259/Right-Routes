@@ -9,6 +9,7 @@ import 'dart:convert';
 import 'dart:async';
 import 'dart:io';
 import 'package:dio/dio.dart' as dio;
+import 'package:right_routes/core/constants/services/auth_service.dart';
 import 'team_manager.dart';
 
 class TeamManagerColors {
@@ -41,6 +42,7 @@ class TeamManagerController extends GetxController {
   RxString planName = 'Loading...'.obs;
   RxString renewalDate = 'Loading...'.obs;
   RxString subscriptionId = 'Loading...'.obs;
+  RxBool isTeamPlan = false.obs;
 
   @override
   void onInit() {
@@ -73,9 +75,36 @@ class TeamManagerController extends GetxController {
         if (responseData['success'] == true && responseData['data'] != null) {
           final data = responseData['data'];
           
-          userLimit.value = data['team_limit'] ?? 0;
-          planName.value = data['plan_name'] ?? 'Unknown Plan';
-          subscriptionId.value = data['stripe_subscription_id'] ?? 'N/A';
+          final String pType = (data['plan_type'] ?? '').toString().toUpperCase();
+          final bool isTeam = (pType == 'TEAM');
+          isTeamPlan.value = isTeam;
+          await AuthService.saveIsTeamPlan(isTeam);
+          
+          if (isTeam) {
+            userLimit.value = data['team_limit'] ?? 0;
+          } else {
+            userLimit.value = 1;
+          }
+          
+          planName.value = data['plan_name'] ?? (isTeam ? 'Team Plan' : 'Single Plan');
+
+          String subId = '';
+          if (data['stripe_subscription_id'] != null && data['stripe_subscription_id'].toString().isNotEmpty) {
+            subId = data['stripe_subscription_id'].toString();
+          } else if (data['original_transaction_id'] != null && data['original_transaction_id'].toString().isNotEmpty) {
+            subId = data['original_transaction_id'].toString();
+          } else if (data['latest_transaction_id'] != null && data['latest_transaction_id'].toString().isNotEmpty) {
+            subId = data['latest_transaction_id'].toString();
+          } else if (data['latest_purchase_transaction_id'] != null && data['latest_purchase_transaction_id'].toString().isNotEmpty) {
+            subId = data['latest_purchase_transaction_id'].toString();
+          } else if (data['uuid'] != null && data['uuid'].toString().isNotEmpty) {
+            subId = data['uuid'].toString();
+          } else if (data['id'] != null && data['id'].toString().isNotEmpty) {
+            subId = "SUB-${data['id']}";
+          } else {
+            subId = 'N/A';
+          }
+          subscriptionId.value = subId;
           
           if (data['expires_at'] != null) {
             DateTime date = DateTime.parse(data['expires_at']);

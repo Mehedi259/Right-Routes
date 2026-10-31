@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:right_routes/core/routes/all_routes.dart';
 import 'package:right_routes/global_widgets/custom_navbar.dart';
 import 'package:right_routes/utils/assets_manager.dart';
 import 'package:right_routes/utils/colors.dart';
@@ -128,7 +129,12 @@ class HistoryScreen extends StatelessWidget {
                                       onTap: controller.cancel),
                                   SizedBox(width: context.w(8)),
                                   _smallButton(context, "Exit",
-                                      onTap: () => Get.back()),
+                                      onTap: () {
+                                        if (Get.isRegistered<NavController>()) {
+                                          Get.find<NavController>().changeTab(0);
+                                        }
+                                        Get.offAllNamed(AppRoutes.homeScreen);
+                                      }),
                                   SizedBox(width: context.w(8)),
                                   _smallButton(context, "Offline",
                                       onTap: () => Get.to(() => const right_routes_offline.OfflineRoutesScreen())),

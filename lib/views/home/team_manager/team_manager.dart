@@ -633,23 +633,53 @@ class TeamManager extends StatelessWidget {
           ),
         ),
         SizedBox(height: context.h(8)),
-        Obx(() => _buildInfoText(context, 'Up to ${controller.userLimit.value} users')),
-        Obx(() => _buildInfoText(context, 'Enrolled user total: ${controller.currentUsers.value} of ${controller.userLimit.value}')),
-        Obx(() => _buildInfoText(context, 'Renewal date: ${controller.renewalDate.value}')),
-        Obx(() => _buildInfoText(context, 'Subscription ID: ${controller.subscriptionId.value}')),
-        GestureDetector(
-          // onTap: () => Get.toNamed(AppRoutes.chooseATeamPlan),
-          child: Text(
-            'Upgrade / Downgrade',
-            style: GoogleFonts.lato(
-              color: AppColors.purple,
-              fontSize: context.sp(18),
-              fontWeight: FontWeight.w400,
-              // NO context.h
-              height: 1.56,
-            ),
-          ),
-        ),
+        Obx(() {
+          if (!controller.isTeamPlan.value) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildInfoText(context, 'Single User Subscription (1 user)'),
+                _buildInfoText(context, 'Renewal date: ${controller.renewalDate.value}'),
+                _buildInfoText(context, 'Subscription ID: ${controller.subscriptionId.value}'),
+                SizedBox(height: context.h(4)),
+                GestureDetector(
+                  onTap: () => Get.toNamed(AppRoutes.chooseATeamPlan),
+                  child: Text(
+                    'Upgrade / Downgrade',
+                    style: GoogleFonts.lato(
+                      color: AppColors.purple,
+                      fontSize: context.sp(18),
+                      fontWeight: FontWeight.w400,
+                      height: 1.56,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          }
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildInfoText(context, 'Up to ${controller.userLimit.value} users'),
+              _buildInfoText(context, 'Enrolled user total: ${controller.currentUsers.value} of ${controller.userLimit.value}'),
+              _buildInfoText(context, 'Renewal date: ${controller.renewalDate.value}'),
+              _buildInfoText(context, 'Subscription ID: ${controller.subscriptionId.value}'),
+              SizedBox(height: context.h(4)),
+              GestureDetector(
+                onTap: () => Get.toNamed(AppRoutes.chooseATeamPlan),
+                child: Text(
+                  'Upgrade / Downgrade',
+                  style: GoogleFonts.lato(
+                    color: AppColors.purple,
+                    fontSize: context.sp(18),
+                    fontWeight: FontWeight.w400,
+                    height: 1.56,
+                  ),
+                ),
+              ),
+            ],
+          );
+        }),
       ],
     );
   }
@@ -672,22 +702,80 @@ class TeamManager extends StatelessWidget {
   }
 
   Widget _buildUsersSection(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildSearchHeader(context),
-        SizedBox(height: context.h(16)),
-        _buildUserListTable(context),
-        SizedBox(height: context.h(16)),
-        _buildActionButtons(context),
-         SizedBox(height: context.h(16)),
-        Divider(color: AppColors.dividerColor, thickness: 1),
-        _buildAddEditUsersSection(context),
-        SizedBox(height: context.h(25)),
-        Divider(color: AppColors.dividerColor, thickness: 1),
-        SizedBox(height: context.h(10)),
-      ],
-    );
+    return Obx(() {
+      if (!controller.isTeamPlan.value) {
+        return Container(
+          width: double.infinity,
+          margin: EdgeInsets.symmetric(vertical: context.h(16)),
+          padding: EdgeInsets.all(context.w(16)),
+          decoration: BoxDecoration(
+            color: TeamManagerColors.borderColor.withValues(alpha: 0.5),
+            borderRadius: BorderRadius.circular(context.r(8)),
+            border: Border.all(color: AppColors.orange.withValues(alpha: 0.4)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'TEAM FEATURES REQUIRE A TEAM PLAN',
+                style: GoogleFonts.leagueGothic(
+                  color: AppColors.orange,
+                  fontSize: context.sp(22),
+                  letterSpacing: 1.2,
+                ),
+              ),
+              SizedBox(height: context.h(8)),
+              Text(
+                'You currently have a Single user subscription. Upgrade to a Team plan to add, manage, and collaborate with team members.',
+                style: GoogleFonts.lato(
+                  color: Colors.white70,
+                  fontSize: context.sp(16),
+                  height: 1.4,
+                ),
+              ),
+              SizedBox(height: context.h(14)),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.orange,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: context.w(20),
+                    vertical: context.h(10),
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(context.r(6)),
+                  ),
+                ),
+                onPressed: () => Get.toNamed(AppRoutes.chooseATeamPlan),
+                child: Text(
+                  'UPGRADE TO TEAM PLAN',
+                  style: GoogleFonts.leagueGothic(
+                    color: Colors.white,
+                    fontSize: context.sp(18),
+                    letterSpacing: 1.2,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSearchHeader(context),
+          SizedBox(height: context.h(16)),
+          _buildUserListTable(context),
+          SizedBox(height: context.h(16)),
+          _buildActionButtons(context),
+          SizedBox(height: context.h(16)),
+          Divider(color: AppColors.dividerColor, thickness: 1),
+          _buildAddEditUsersSection(context),
+          SizedBox(height: context.h(25)),
+          Divider(color: AppColors.dividerColor, thickness: 1),
+          SizedBox(height: context.h(10)),
+        ],
+      );
+    });
   }
 
   Widget _buildSearchHeader(BuildContext context) {

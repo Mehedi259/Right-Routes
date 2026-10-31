@@ -1,7 +1,12 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
+import 'package:right_routes/core/constants/api_config/home_api_constant/home_api_constant.dart';
+import 'package:right_routes/core/constants/services/api_client.dart';
+import 'package:right_routes/core/constants/services/auth_service.dart';
 import 'package:right_routes/core/routes/all_routes.dart';
+import 'package:right_routes/utils/colors.dart';
 import 'package:right_routes/utils/responsive_ext.dart';
 
 class CustomNavbar extends StatefulWidget {
@@ -93,9 +98,61 @@ class _CustomNavbarState extends State<CustomNavbar> {
     required String route,
   }) {
     final bool isSelected = controller.selectedIndex.value == index;
+    final bool isTeamsTab = index == 1;
+    final bool isTeamsDisabled = isTeamsTab && !controller.isTeamPlan.value;
 
     return GestureDetector(
       onTap: () {
+        if (isTeamsDisabled) {
+          Get.dialog(
+            AlertDialog(
+              backgroundColor: const Color(0xFF2B2B2B),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(context.r(8))),
+              title: Text(
+                'Team Plan Required',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontFamily: 'Lato',
+                  fontSize: context.sp(20),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              content: Text(
+                'You currently have a Single user subscription. The Teams section is only accessible with an active Team plan.',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontFamily: 'Lato',
+                  fontSize: context.sp(16),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Get.back(),
+                  child: Text(
+                    'Cancel',
+                    style: TextStyle(color: Colors.white70, fontSize: context.sp(16)),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Get.back();
+                    Get.toNamed(AppRoutes.chooseATeamPlan);
+                  },
+                  child: Text(
+                    'Upgrade to Team',
+                    style: TextStyle(
+                      color: const Color(0xFFFF8742),
+                      fontWeight: FontWeight.bold,
+                      fontSize: context.sp(16),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+          return;
+        }
+
         if (Get.currentRoute == route) return;
         controller.changeTab(index);
         Future.delayed(Duration.zero, () {
@@ -116,26 +173,28 @@ class _CustomNavbarState extends State<CustomNavbar> {
             children: [
               SvgPicture.asset(
                 svgIcon,
-                width: context.s(26),  // original: 26.w
-                height: context.s(26), // original: 26.h — square তাই s()
+                width: context.s(26),
+                height: context.s(26),
                 colorFilter: ColorFilter.mode(
-                  isSelected
-                      ? const Color(0xFFFF8742)
-                      : Colors.white, // original: no opacity
+                  isTeamsDisabled
+                      ? Colors.white.withValues(alpha: 0.35)
+                      : (isSelected
+                          ? const Color(0xFFFF8742)
+                          : Colors.white),
                   BlendMode.srcIn,
                 ),
               ),
-              SizedBox(height: context.h(2)), // original: 2.h
+              SizedBox(height: context.h(2)),
               Text(
                 label,
                 style: TextStyle(
-                  fontSize: context.sp(12), // original: 12.sp
-                  fontWeight: isSelected
-                      ? FontWeight.w600
-                      : FontWeight.w400,
-                  color: isSelected
-                      ? const Color(0xFFFF8742)
-                      : Colors.white, // original: no opacity
+                  fontSize: context.sp(12),
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                  color: isTeamsDisabled
+                      ? Colors.white.withValues(alpha: 0.35)
+                      : (isSelected
+                          ? const Color(0xFFFF8742)
+                          : Colors.white),
                 ),
               ),
             ],
@@ -151,6 +210,7 @@ class _CustomNavbarState extends State<CustomNavbar> {
 // ════════════════════════════════════════════════════════════════
 class NavController extends GetxController {
   RxInt selectedIndex = 0.obs;
+  RxBool isTeamPlan = false.obs;
   final List<String> _routeHistory = [];
 
   final Map<String, int> _routeToIndex = {
@@ -159,6 +219,37 @@ class NavController extends GetxController {
     AppRoutes.historyScreen: 2,
     AppRoutes.accountScreen: 3,
   };
+
+  @override
+  void onInit() {
+    super.onInit();
+    isTeamPlan.value = AuthService.getIsTeamPlan();
+    checkTeamSubscription();
+  }
+
+  Future<void> checkTeamSubscription() async {
+    try {
+      final token = await AuthService.getAccessToken();
+      if (token == null || token.isEmpty) return;
+      final uri = Uri.parse(HomeApiConstant.baseUrl + HomeApiConstant.currentPlan);
+      final response = await ApiClient.get(uri);
+      if (response.statusCode == 200) {
+        final data = response.data is String ? jsonDecode(response.data) : response.data;
+        if (data['success'] == true && data['data'] != null) {
+          final pType = (data['data']['plan_type'] ?? '').toString().toUpperCase();
+          final isTeam = (pType == 'TEAM');
+          isTeamPlan.value = isTeam;
+          await AuthService.saveIsTeamPlan(isTeam);
+          update(['navbar']);
+        }
+      }
+    } catch (_) {}
+  }
+
+  void updateTeamPlanStatus(bool isTeam) {
+    isTeamPlan.value = isTeam;
+    update(['navbar']);
+  }
 
   void changeTab(int index) {
     selectedIndex.value = index;

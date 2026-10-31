@@ -122,10 +122,13 @@ class HistoryController extends GetxController {
   }
 
   void cancel() {
+    searchController.clear();
+    searchQuery.value = "";
     selectAll.value = false;
     for (var route in routes) {
       route.isSelected.value = false;
     }
+    fetchRoutes(query: '');
   }
 
   void toggleRoute(int index) {
@@ -386,37 +389,7 @@ class HistoryController extends GetxController {
 
   void openRouteDetails(int index) {
     final route = routes[index];
-
-    Get.dialog(
-      AlertDialog(
-        backgroundColor: AppColors.darkGray,
-        title: const Text('Route Details', style: TextStyle(color: Colors.white)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('ID: ${route.id}',
-                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-            SizedBox(height: 8.h),
-            Text('Date: ${route.date}', style: const TextStyle(color: Colors.white)),
-            SizedBox(height: 8.h),
-            Text('Title: ${route.title}', style: const TextStyle(color: Colors.white)),
-          ],
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Get.back(),
-              child: const Text('Close', style: TextStyle(color: Colors.white))),
-          TextButton(
-            onPressed: () {
-              Get.back();
-              Get.toNamed(AppRoutes.confirmYourRoutes, arguments: {'routeId': route.id});
-            },
-            child: const Text('Edit Route', style: TextStyle(color: AppColors.orange)),
-          ),
-        ],
-      ),
-    );
+    Get.toNamed(AppRoutes.confirmYourRoutes, arguments: {'routeId': route.id});
   }
 
   @override
