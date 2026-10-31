@@ -50,6 +50,16 @@ class _HomeScreenMapState extends State<HomeScreenMap> with WidgetsBindingObserv
   }
 
   Future<void> _determineInitialLocation() async {
+    if (_ctrl.lastMapCenter != null) {
+      if (mounted) {
+        setState(() {
+          _initialPosition = _ctrl.lastMapCenter;
+          _isLoadingInitialLocation = false;
+        });
+      }
+      return;
+    }
+
     if (_ctrl.startLat.value.isNotEmpty && _ctrl.startLng.value.isNotEmpty) {
       double? lat = double.tryParse(_ctrl.startLat.value);
       double? lng = double.tryParse(_ctrl.startLng.value);
@@ -281,7 +291,7 @@ class _HomeScreenMapState extends State<HomeScreenMap> with WidgetsBindingObserv
             styleString: MapConfig.mapStyle,
             initialCameraPosition: CameraPosition(
               target: _initialPosition!,
-              zoom: 14.0,
+              zoom: _ctrl.lastMapZoom,
             ),
             myLocationEnabled: true,
             compassEnabled: false,
@@ -294,6 +304,10 @@ class _HomeScreenMapState extends State<HomeScreenMap> with WidgetsBindingObserv
               Factory<OneSequenceGestureRecognizer>(
                 () => EagerGestureRecognizer(),
               ),
+            },
+            onCameraMove: (CameraPosition position) {
+              _ctrl.lastMapCenter = position.target;
+              _ctrl.lastMapZoom = position.zoom;
             },
             onMapCreated: (controller) {
               mapController = controller;
@@ -379,6 +393,10 @@ class _HomeScreenMapState extends State<HomeScreenMap> with WidgetsBindingObserv
                 if (widget.isFullScreen) {
                   Get.back();
                 } else {
+                  if (mapController?.cameraPosition != null) {
+                    _ctrl.lastMapCenter = mapController!.cameraPosition!.target;
+                    _ctrl.lastMapZoom = mapController!.cameraPosition!.zoom;
+                  }
                   _ctrl.isMapFullScreen.value = !_ctrl.isMapFullScreen.value;
                   if (mounted) setState(() {});
                 }
@@ -562,7 +580,13 @@ class _HomeScreenMapState extends State<HomeScreenMap> with WidgetsBindingObserv
       }
     }
 
-    if (startCoords != null && endCoords != null) {
+    if (_ctrl.lastMapCenter != null) {
+      await mapController!.animateCamera(
+        CameraUpdate.newCameraPosition(
+          CameraPosition(target: _ctrl.lastMapCenter!, zoom: _ctrl.lastMapZoom),
+        ),
+      );
+    } else if (startCoords != null && endCoords != null) {
       await _fitBounds([startCoords, endCoords]);
     } else if (startCoords != null) {
       await mapController!.animateCamera(
@@ -609,7 +633,16 @@ class _HomeScreenMapState extends State<HomeScreenMap> with WidgetsBindingObserv
     }
 
     // 3. Proceed with auto-initialize or sync markers
-    if (_ctrl.startLat.value.isEmpty) {
+    if (_ctrl.lastMapCenter != null) {
+      await mapController!.animateCamera(
+        CameraUpdate.newCameraPosition(
+          CameraPosition(target: _ctrl.lastMapCenter!, zoom: _ctrl.lastMapZoom),
+        ),
+      );
+      if (_ctrl.startLat.value.isNotEmpty || _ctrl.endLat.value.isNotEmpty) {
+        await _syncMarkersFromController();
+      }
+    } else if (_ctrl.startLat.value.isEmpty) {
       await _initializeCurrentLocationAsStart();
     } else {
       await _syncMarkersFromController();
@@ -642,6 +675,8 @@ class _HomeScreenMapState extends State<HomeScreenMap> with WidgetsBindingObserv
       }
 
       final LatLng currentLatLng = LatLng(pos.latitude, pos.longitude);
+      _ctrl.lastMapCenter = currentLatLng;
+      _ctrl.lastMapZoom = 14.0;
 
       // Only zoom camera to current location — do NOT set startLat/startLng yet.
       // The user must press "Confirm Start" to lock in the starting point.
@@ -852,6 +887,8 @@ class _HomeScreenMapState extends State<HomeScreenMap> with WidgetsBindingObserv
     _startSymbol = null;
     _endSymbol = null;
     _routeLine = null;
+    _ctrl.lastMapCenter = null;
+    _ctrl.lastMapZoom = 14.0;
     _ctrl.startLat.value = '';
     _ctrl.startLng.value = '';
     _ctrl.startLocation.value = '';

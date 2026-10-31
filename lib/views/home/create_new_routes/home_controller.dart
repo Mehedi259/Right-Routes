@@ -7,6 +7,7 @@ import 'package:right_routes/core/routes/all_routes.dart';
 import 'package:right_routes/core/constants/api_config/home_api_constant/home_api_constant.dart';
 import 'package:right_routes/core/constants/services/api_client.dart';
 import 'package:right_routes/core/constants/services/auth_service.dart';
+import 'package:maplibre_gl/maplibre_gl.dart';
 
 import '../history_screen/history_controller.dart';
 
@@ -298,6 +299,10 @@ class HomeController extends GetxController {
   final RxBool showMapSection = false.obs;
   // Whether the map is expanded to fullscreen in-place
   final RxBool isMapFullScreen = false.obs;
+
+  // Preserved map camera position and zoom across fullscreen toggle & view rebuilds
+  LatLng? lastMapCenter;
+  double lastMapZoom = 14.0;
 
   final RxList<DraftRouteModel> draftRoutes = <DraftRouteModel>[
     const DraftRouteModel(

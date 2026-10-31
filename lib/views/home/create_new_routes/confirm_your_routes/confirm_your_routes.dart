@@ -720,34 +720,6 @@ class _EditConfirmStartYourRouteState extends State<EditConfirmStartYourRoute> {
                                   horizontal: context.w(12), vertical: 0)),
                         ),
                       ),
-                      if (!isFirst && !isLast) ...[
-                        GestureDetector(
-                          onTap: () {
-                            FocusScope.of(context).unfocus();
-                            _showMicDialog(
-                              context,
-                              title: 'Speak Waypoint',
-                              onDone: (text) {
-                                ctrl.updateWaypoint(permitIndex, wpIdx, text);
-                                permit.waypointControllers[wpIdx].text = text;
-                              },
-                            );
-                          },
-                          child: Padding(
-                            padding: EdgeInsets.only(right: context.w(6)),
-                            child: Container(
-                              width: context.w(20),
-                              height: context.h(20),
-                              decoration: BoxDecoration(
-                                  color: AppColors.orange,
-                                  borderRadius:
-                                      BorderRadius.circular(context.r(6))),
-                              child: Icon(Icons.mic_none,
-                                  color: AppColors.white, size: context.sp(18)),
-                            ),
-                          ),
-                        ),
-                      ],
                     ],
                   ),
                 ),
@@ -1223,16 +1195,65 @@ void showConfirmRouteInfoDialog(BuildContext context) {
 }
 
 void showWaypointsInfoDialog(BuildContext context) {
+  Widget buildParagraph(String text, {bool isHeading = false}) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: context.h(10)),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: AppColors.white,
+          fontSize: context.sp(isHeading ? 16 : 14.5),
+          fontFamily: 'Lato',
+          fontWeight: isHeading ? FontWeight.w700 : FontWeight.w400,
+          height: 1.45,
+        ),
+      ),
+    );
+  }
+
   showCustomInfoDialog(
     context: context,
     icon: Icon(Icons.location_on, color: AppColors.white, size: context.sp(24)),
-    texts: const [
-      'Tap inside a field to select a waypoint.',
-      'Tap the "+" icon to add a field.',
-      'Tap the "X" icon to remove that waypoint.',
-      'Tap pins on map to select, then use Delete Pin button.',
-      'Drag pins on the map to reposition them.',
-      'Tap Update to refresh your route before clicking GO.',
+    customWidgets: [
+      buildParagraph(
+        'If you imported a permit or typed in the directions, each waypoint appears as a sequenced number pin on the map and as text in the Details section below the map.',
+      ),
+      buildParagraph(
+        'If you are placing your own waypoints, tap ADD PIN for each waypoint you want to place. Move the waypoints around on the map as desired. Alternatively, you can tap SHOW/HIDE DETAILS and edit the waypoints text from there.',
+      ),
+      buildParagraph(
+        'Tap the "+" icon to add a waypoint text field and tap the "X" icon to remove. This is the same as tapping ADD PIN and DELETE PIN under the map.',
+      ),
+      buildParagraph(
+        'You must tap UPDATE when done editing to update the route.',
+      ),
+      buildParagraph(
+        '(Optional): Import another permit.',
+        isHeading: true,
+      ),
+      buildParagraph(
+        'If your route includes more than one permit, tap ADD PERMIT 2 which returns you to the Create Route screen to process your second permit directions the same as you did for the first.',
+      ),
+      buildParagraph(
+        'If you\'re placing your own waypoints, you still must still tap ADD PERMIT 2, tap the BUILD YOUR ROUTE button, type in any word, then tap NEXT to go to the Edit Waypoints screen to place your second permit\'s E (End) point. The S (Start) point for your second permit is always the End point of the previous permit.',
+      ),
+      buildParagraph(
+        'Moving around the map:',
+        isHeading: true,
+      ),
+      buildParagraph('Spread two fingers apart on the map to zoom in.'),
+      buildParagraph('Mover two fingers together to Zoom out.'),
+      buildParagraph('Use one finger to move the map around.'),
+      buildParagraph(
+        'Tap the white square at top right the go full screen map view.',
+      ),
+      buildParagraph(
+        'When finished:',
+        isHeading: true,
+      ),
+      buildParagraph('Tap SAVE to save this route to your Route History.'),
+      buildParagraph('Make sure to verify your route before proceeding.'),
+      buildParagraph('Tap DRIVE to drive the route.'),
     ],
   );
 }

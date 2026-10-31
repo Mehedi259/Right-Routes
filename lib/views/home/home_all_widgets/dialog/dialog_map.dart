@@ -11,13 +11,14 @@ void dialogMap(BuildContext context) {
       size: 24.sp,
     ),
     texts: [
-      'The green "S" (Start) point is your current location.',
-      'The red "E" (End) point is your ending location for this permit.',
-      'You will first see the S point. You can confirm it\'s location or move it closer to where you will be starting your permitted route.',
-      'When tapping Confirm Start the E pin will appear. You can either type in, speak in or manually place this point at or near the end of your route for this permit.',
-      'Pinch the map with two fingers to zoom out. Spread two fingers to zoom in. Move the map with one finger.',
-      'Tap the full screen icon at top right to see a larger view of the map.',
-      'The "S" and "E" points form the boundary into which the waypoints from your permit will fit between.',
+      'The green S (Start) point default position is your current location.',
+      'Tap the full-screen mode button at the top right in the map to expand your view if desired.',
+      'Move the map to reposition where the S point will be set. It should be near your permit\'s starting point.',
+      'Tap CONFIRM START to set it.',
+      'The red E (End) point will appear.',
+      'Move the map to position the E point near the end of this permit\'s route.',
+      'Tap CONFIRM END to set it.',
+      'Tap CONTINUE when done.',
     ],
   );
 }
