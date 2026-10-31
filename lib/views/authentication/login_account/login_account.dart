@@ -126,7 +126,7 @@ class _LoginAccountState extends State<LoginAccount> {
         ),
         SizedBox(height: isLandscape ? context.s(10) : context.h(21)),
         Text(
-          'Good News you already have a Right Route account',
+          'Good news! You already have a RightRoute account.',
           style: TextStyle(
             color: Colors.white,
             fontSize: context.sp(25),

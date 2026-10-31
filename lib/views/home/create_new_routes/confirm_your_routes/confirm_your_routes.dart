@@ -132,7 +132,16 @@ class _EditConfirmStartYourRouteState extends State<EditConfirmStartYourRoute> {
                         _buildAddPermitButton(context),
                         SizedBox(height: context.h(14)),
                         _buildTotalMilesText(context),
-                        SizedBox(height: context.h(18)),
+                        SizedBox(height: context.h(14)),
+                        Obx(() {
+                          if (!controller.showDriveWarning.value) {
+                            return const SizedBox.shrink();
+                          }
+                          return Padding(
+                            padding: EdgeInsets.only(bottom: context.h(12)),
+                            child: _buildDriveWarningBanner(context),
+                          );
+                        }),
                         _buildBottomButtons(context),
                         SizedBox(height: context.h(24)),
                       ],
@@ -195,7 +204,16 @@ class _EditConfirmStartYourRouteState extends State<EditConfirmStartYourRoute> {
                       _buildAddPermitButton(context),
                       SizedBox(height: context.h(14)),
                       _buildTotalMilesText(context),
-                      SizedBox(height: context.h(18)),
+                      SizedBox(height: context.h(14)),
+                      Obx(() {
+                        if (!controller.showDriveWarning.value) {
+                          return const SizedBox.shrink();
+                        }
+                        return Padding(
+                          padding: EdgeInsets.only(bottom: context.h(12)),
+                          child: _buildDriveWarningBanner(context),
+                        );
+                      }),
                       _buildBottomButtons(context),
                       SizedBox(height: context.h(20)),
                     ],
@@ -814,6 +832,11 @@ class _EditConfirmStartYourRouteState extends State<EditConfirmStartYourRoute> {
             borderRadius: 10,
             onPressed: () {
               FocusScope.of(context).unfocus();
+              if (!controller.showDriveWarning.value) {
+                controller.showDriveWarning.value = true;
+                return;
+              }
+              controller.showDriveWarning.value = false;
               Get.to(
                 () => const DriveRouteMap(),
                 arguments: {
@@ -825,6 +848,91 @@ class _EditConfirmStartYourRouteState extends State<EditConfirmStartYourRoute> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildDriveWarningBanner(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(
+        horizontal: context.w(14),
+        vertical: context.h(12),
+      ),
+      decoration: BoxDecoration(
+        color: const Color(0xFF8B0000),
+        borderRadius: BorderRadius.circular(context.r(8)),
+        border: Border.all(
+          color: const Color(0xFF5A0000),
+          width: 1.0,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.35),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SvgPicture.asset(
+            'assets/icons/bell-icon.svg',
+            width: context.w(24),
+            height: context.h(24),
+            colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+          ),
+          SizedBox(width: context.w(10)),
+          Expanded(
+            child: Text(
+              'Please verify that your route is correct before proceeding.',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: context.sp(13.5),
+                fontFamily: 'Lato',
+                fontWeight: FontWeight.w500,
+                height: 1.3,
+              ),
+            ),
+          ),
+          SizedBox(width: context.w(8)),
+          GestureDetector(
+            onTap: () {
+              controller.showDriveWarning.value = false;
+              Get.to(
+                () => const DriveRouteMap(),
+                arguments: {
+                  'routeId': controller.currentRouteId,
+                  'routePoints': controller.waypointPositions,
+                },
+              );
+            },
+            child: Container(
+              padding: EdgeInsets.symmetric(
+                horizontal: context.w(14),
+                vertical: context.h(7),
+              ),
+              decoration: BoxDecoration(
+                color: const Color(0xFF5A1414),
+                borderRadius: BorderRadius.circular(context.r(6)),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  width: 0.8,
+                ),
+              ),
+              child: Text(
+                'OK',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: context.sp(14),
+                  fontFamily: 'Lato',
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

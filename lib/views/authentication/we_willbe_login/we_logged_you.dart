@@ -93,7 +93,7 @@ class WeLoggedYou extends StatelessWidget {
                         ),
                         SizedBox(height: context.h(21)),
                         Text(
-                          'You can now continue to Right Route. If you ve forgotten your password, you can choose a new one now or update it from your account Settings another time.',
+                          'You can now continue to RightRoute. If you ve forgotten your password, you can choose a new one now or update it from your account Settings another time.',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: context.sp(18),

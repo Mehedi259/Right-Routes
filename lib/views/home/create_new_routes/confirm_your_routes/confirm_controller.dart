@@ -54,6 +54,7 @@ class ConfirmRouteController extends GetxController {
   final RxBool isMapReady = false.obs;
   final RxBool isRouteLoading = false.obs;
   final RxBool isAddingPinMode = false.obs;
+  final RxBool showDriveWarning = false.obs;
 
   final RxList<PermitState> editablePermits = <PermitState>[].obs;
 
@@ -104,6 +105,7 @@ class ConfirmRouteController extends GetxController {
 
   @override
   void onClose() {
+    showDriveWarning.value = false;
     _waypointDebouncer?.cancel();
     _routeNameDebouncer?.cancel();
     routeNameController.dispose();

@@ -50,7 +50,21 @@ class PlanController extends GetxController {
             final model = SubscriptionPlanModel.fromJson(item);
             final bType = model.billingType;
             if (bType == 'MONTHLY') {
-              monthlyPlan.value = model;
+              if (model.price == '50.00' || model.price == '50' || model.price.isEmpty) {
+                final updatedModel = SubscriptionPlanModel(
+                  id: model.id,
+                  title: model.title,
+                  description: model.description,
+                  price: '14.99',
+                  billingType: model.billingType,
+                  planType: model.planType,
+                  teamLimit: model.teamLimit,
+                  isActive: model.isActive,
+                );
+                monthlyPlan.value = updatedModel;
+              } else {
+                monthlyPlan.value = model;
+              }
             } else if (bType == 'ANNUAL') {
               annualPlan.value = model;
             }
@@ -259,7 +273,10 @@ class ChooseYourPlan extends StatelessWidget {
 
                             /// MONTHLY PLAN TILE
                             Obx(() {
-                              final price = controller.monthlyPlan.value?.price ?? "14.99";
+                              final rawPrice = controller.monthlyPlan.value?.price;
+                              final price = (rawPrice == null || rawPrice == "50.00" || rawPrice == "50")
+                                  ? "14.99"
+                                  : rawPrice;
                               return _planTile(context: context, 
                                 title: "MONTHLY PLAN",
                                 price: "\$$price/MO",
@@ -369,11 +386,13 @@ Widget _planTile({required BuildContext context,
     onTap: onTap,
     child: Container(
       width: context.w(392),
-      height: context.h(76),
-      padding: EdgeInsets.symmetric(horizontal: context.w(13)),
+      height: context.h(78),
+      padding: EdgeInsets.symmetric(
+        horizontal: context.w(13),
+        vertical: context.h(6),
+      ),
       decoration: BoxDecoration(
         color: selected ? AppColors.orange : AppColors.darkGray,
-        // borderRadius: BorderRadius.circular(context.r(10)),
         border: Border.all(width: context.w(1), color: AppColors.medGray),
       ),
       child: Row(
@@ -403,7 +422,7 @@ Widget _planTile({required BuildContext context,
               fontSize: context.sp(24),
               fontFamily: 'League Gothic',
               fontWeight: FontWeight.w400,
-              height: context.h(1.17),
+              height: 1.1,
               letterSpacing: 1,
             ),
           ),
@@ -412,6 +431,7 @@ Widget _planTile({required BuildContext context,
 
           /// PRICE + OPTIONAL BADGE
           Column(
+            mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
@@ -419,29 +439,32 @@ Widget _planTile({required BuildContext context,
                 price,
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: context.sp(30),
+                  fontSize: context.sp(26),
                   fontFamily: 'League Gothic',
                   fontWeight: FontWeight.w400,
-                  height: context.h(0.88),
+                  height: 1.0,
                   letterSpacing: 1,
                 ),
               ),
               if (badge != null)
                 Container(
-                  margin: EdgeInsets.only(top: context.h(6)),
-                  padding: EdgeInsets.symmetric(horizontal: context.w(9)),
+                  margin: EdgeInsets.only(top: context.h(3)),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: context.w(8),
+                    vertical: context.h(2),
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(context.r(5)),
+                    borderRadius: BorderRadius.circular(context.r(4)),
                   ),
                   child: Text(
                     badge,
                     style: TextStyle(
                       color: AppColors.darkGray,
-                      fontSize: context.sp(16),
+                      fontSize: context.sp(13),
                       fontFamily: 'Lato',
                       fontWeight: FontWeight.w700,
-                      height: context.h(1.75),
+                      height: 1.15,
                     ),
                   ),
                 ),

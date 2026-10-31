@@ -107,7 +107,7 @@ class EnterEmailScreen extends StatelessWidget {
             ),
             SizedBox(height: context.h(21)),
             Text(
-              "Log in to your Right Route account. If you don't have one, you will be prompted to create one.",
+              "Log in to your RightRoute account. If you don't have one, you will be prompted to create one.",
               style: TextStyle(
                 color: Colors.white,
                 fontSize: context.sp(18),
