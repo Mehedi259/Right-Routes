@@ -1,11 +1,47 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:right_routes/utils/colors.dart';
 import 'package:right_routes/utils/responsive_ext.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../utils/assets_manager.dart';
 import '../../global_widgets/custom_navbar.dart';
 
-class ContactSupport extends StatelessWidget {
+class ContactSupport extends StatefulWidget {
   const ContactSupport({super.key});
+
+  @override
+  State<ContactSupport> createState() => _ContactSupportState();
+}
+
+class _ContactSupportState extends State<ContactSupport> {
+  late final TapGestureRecognizer _emailRecognizer;
+  late final TapGestureRecognizer _webRecognizer;
+
+  @override
+  void initState() {
+    super.initState();
+    _emailRecognizer = TapGestureRecognizer()
+      ..onTap = () async {
+        final uri = Uri.parse('mailto:help@getrightroute.app');
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri);
+        }
+      };
+    _webRecognizer = TapGestureRecognizer()
+      ..onTap = () async {
+        final uri = Uri.parse('https://getrightroute.app/support/');
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        }
+      };
+  }
+
+  @override
+  void dispose() {
+    _emailRecognizer.dispose();
+    _webRecognizer.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -124,20 +160,36 @@ class ContactSupport extends StatelessWidget {
           ),
         ),
         Divider(color: AppColors.dividerColor, thickness: 1),
+        SizedBox(height: context.h(8)),
         RichText(
           text: TextSpan(
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: context.sp(18),
+              fontFamily: 'Lato',
+              fontWeight: FontWeight.w500,
+              height: 1.4,
+            ),
             children: [
-              TextSpan(
+              const TextSpan(
                 text: 'Please contact us at ',
+              ),
+              TextSpan(
+                text: 'help@getrightroute.app',
+                recognizer: _emailRecognizer,
                 style: TextStyle(
-                  color: Colors.white,
+                  color: AppColors.purple,
                   fontSize: context.sp(18),
                   fontFamily: 'Lato',
                   fontWeight: FontWeight.w500,
                 ),
               ),
+              const TextSpan(
+                text: ' or fill out a support ticket on our website here: ',
+              ),
               TextSpan(
-                text: 'help@rightroute.com',
+                text: 'https://getrightroute.app/support/',
+                recognizer: _webRecognizer,
                 style: TextStyle(
                   color: AppColors.purple,
                   fontSize: context.sp(18),

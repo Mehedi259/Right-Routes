@@ -8,6 +8,7 @@ import 'package:right_routes/utils/responsive_ext.dart';
 import '../../../core/constants/services/auth_service.dart';
 import '../../../utils/assets_manager.dart';
 import 'logout_api_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 // -----------------------------------------------------------------------------
 // CONTROLLER (GetX)
@@ -396,6 +397,16 @@ class SingleSubscriberScreen extends StatelessWidget {
           title: "Contact Support",
           fontWeight: FontWeight.w500,
           onTap: () => Get.toNamed(AppRoutes.contactSupport),
+        ),
+        RRRightArrowTile(
+          title: "App Help",
+          fontWeight: FontWeight.w500,
+          onTap: () async {
+            final uri = Uri.parse('https://getrightroute.app/tipstricks/');
+            if (await canLaunchUrl(uri)) {
+              await launchUrl(uri, mode: LaunchMode.externalApplication);
+            }
+          },
         ),
       ],
     );

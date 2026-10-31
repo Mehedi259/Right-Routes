@@ -293,7 +293,7 @@ class _HomescreenState extends State<Homescreen> {
               child: _buildChoiceButton(
                 context,
                 icon: Icons.file_download_outlined,
-                label: 'Import\nPermit',
+                label: 'IMPORT PERMIT',
                 onTap: () {
                   _ctrl.choiceMode.value = 'import';
                   _pickFile(); // directly open document picker
@@ -306,7 +306,7 @@ class _HomescreenState extends State<Homescreen> {
               child: _buildChoiceButton(
                 context,
                 icon: Icons.edit_outlined,
-                label: 'Build Your\nRoute',
+                label: 'BUILD YOUR ROUTE',
                 onTap: () {
                   _ctrl.choiceMode.value = 'build';
                 },
@@ -327,25 +327,32 @@ class _HomescreenState extends State<Homescreen> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: context.h(50),
+        height: context.h(48),
+        padding: EdgeInsets.symmetric(horizontal: context.w(8)),
         decoration: BoxDecoration(
           color: AppColors.orange,
           borderRadius: BorderRadius.circular(context.r(10)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Icon(icon, color: Colors.white, size: context.sp(20)),
             SizedBox(width: context.w(6)),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: context.sp(13),
-                fontFamily: 'Lato',
-                fontWeight: FontWeight.w700,
-                height: 1.2,
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: context.sp(20),
+                    fontFamily: 'League Gothic',
+                    fontWeight: FontWeight.w400,
+                    letterSpacing: 1.5,
+                  ),
+                ),
               ),
             ),
           ],

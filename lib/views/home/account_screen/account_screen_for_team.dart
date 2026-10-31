@@ -13,6 +13,7 @@ import 'package:right_routes/core/constants/api_config/home_api_constant/home_ap
 import 'logout_api_service.dart';
 import 'team_user_screen.dart';
 import 'single_subscriber_screen.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 // -----------------------------------------------------------------------------
 // CONTROLLER (GetX)
@@ -494,6 +495,16 @@ class AccountScreen extends StatelessWidget {
           title: "Contact Support",
           fontWeight: FontWeight.w500,
           onTap: () => Get.toNamed(AppRoutes.contactSupport),
+        ),
+        RRRightArrowTile(
+          title: "App Help",
+          fontWeight: FontWeight.w500,
+          onTap: () async {
+            final uri = Uri.parse('https://getrightroute.app/tipstricks/');
+            if (await canLaunchUrl(uri)) {
+              await launchUrl(uri, mode: LaunchMode.externalApplication);
+            }
+          },
         ),
       ],
     );
