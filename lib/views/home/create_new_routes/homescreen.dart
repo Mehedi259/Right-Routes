@@ -243,15 +243,15 @@ class _HomescreenState extends State<Homescreen> {
 
   Widget _buildPermitTitle(BuildContext context) {
     return Center(
-      child: Text(
-        'Permit 1',
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: context.sp(20),
-          fontFamily: 'Lato',
-          fontWeight: FontWeight.w700,
-        ),
-      ),
+      child: Obx(() => Text(
+            'Permit ${_ctrl.currentPermitIndex.value}',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: context.sp(20),
+              fontFamily: 'Lato',
+              fontWeight: FontWeight.w700,
+            ),
+          )),
     );
   }
 
@@ -598,15 +598,17 @@ class _HomescreenState extends State<Homescreen> {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Set your Start & End Points:',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: context.sp(17),
-                fontFamily: 'Lato',
-                fontWeight: FontWeight.w700,
-              ),
-            ),
+            Obx(() => Text(
+                  _ctrl.currentPermitIndex.value > 1
+                      ? 'Set End Point for Permit ${_ctrl.currentPermitIndex.value}:'
+                      : 'Set your Start & End Points:',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: context.sp(17),
+                    fontFamily: 'Lato',
+                    fontWeight: FontWeight.w700,
+                  ),
+                )),
             SizedBox(width: context.w(6)),
             Padding(
               padding: EdgeInsets.only(top: context.h(2)),
@@ -676,7 +678,12 @@ class _HomescreenState extends State<Homescreen> {
           onPressed: (_ctrl.isCreating.value || !isValid)
               ? null
               : () {
-                  _ctrl.submitCreateRoute();
+                  if (_ctrl.subsequentRouteId != null &&
+                      _ctrl.currentPermitIndex.value > 1) {
+                    _ctrl.submitCreateSubsequentPermit();
+                  } else {
+                    _ctrl.submitCreateRoute();
+                  }
                 },
         );
       }),

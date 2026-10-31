@@ -15,6 +15,7 @@ import 'package:right_routes/core/constants/api_config/map_config.dart';
 import 'package:right_routes/core/constants/services/route_permit_service.dart';
 import 'package:right_routes/core/constants/services/offline_route_service.dart';
 import 'package:right_routes/utils/map_icon_util.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 
 class DriveController extends GetxController
     with GetSingleTickerProviderStateMixin {
@@ -50,6 +51,13 @@ class DriveController extends GetxController
   final List<Symbol> _waypointSymbols = [];
   bool _waypointIconsLoaded = false;
 
+  final FlutterTts _tts = FlutterTts();
+  final RxBool isVoiceMuted = false.obs;
+  int _nextWaypointIndex = 1;
+  bool _notified500m = false;
+  bool _notified100m = false;
+  String _lastSpoken = '';
+
   @override
   void onInit() {
     super.onInit();
@@ -57,6 +65,7 @@ class DriveController extends GetxController
       duration: const Duration(milliseconds: 500),
       vsync: this,
     );
+    _initTts();
     _initFromArguments();
     _requestPermission();
     startDriveApi();
@@ -66,6 +75,7 @@ class DriveController extends GetxController
 
   @override
   void onClose() {
+    _tts.stop();
     _simulationTimer?.cancel();
     _positionSubscription?.cancel();
     _rotationController.dispose();
@@ -73,6 +83,39 @@ class DriveController extends GetxController
       stopDriveApi();
     }
     super.onClose();
+  }
+
+  Future<void> _initTts() async {
+    try {
+      await _tts.setLanguage('en-US');
+      await _tts.setSpeechRate(0.5);
+      await _tts.setVolume(1.0);
+      await _tts.setPitch(1.0);
+      await _tts.awaitSpeakCompletion(true);
+    } catch (e) {
+      debugPrint('TTS Init Error: $e');
+    }
+  }
+
+  Future<void> speak(String text) async {
+    if (isVoiceMuted.value || text.isEmpty) return;
+    if (_lastSpoken == text) return;
+    _lastSpoken = text;
+    try {
+      await _tts.stop();
+      await _tts.speak(text);
+    } catch (e) {
+      debugPrint('TTS Speak Error: $e');
+    }
+  }
+
+  void toggleVoiceMute() {
+    isVoiceMuted.value = !isVoiceMuted.value;
+    if (isVoiceMuted.value) {
+      _tts.stop();
+    } else {
+      speak('Voice guidance enabled');
+    }
   }
 
   void _initFromArguments() {
@@ -111,6 +154,29 @@ class DriveController extends GetxController
 
       if (args['routeId'] != null) {
         routeId = args['routeId'].toString();
+      }
+
+      if (waypointPositions.isEmpty && routeId.isNotEmpty) {
+        Future.microtask(() async {
+          final offlineRoutes = await OfflineRouteService.getOfflineRoutes();
+          final match = offlineRoutes.firstWhereOrNull(
+              (r) => r['routeId']?.toString() == routeId);
+          if (match != null) {
+            final wpList = match['waypoints'] as List? ?? [];
+            waypointPositions = wpList
+                .map((wp) => LatLng(
+                    (wp['lat'] as num).toDouble(), (wp['lng'] as num).toDouble()))
+                .toList();
+            if (waypointPositions.isNotEmpty) {
+              vehicleLat.value = waypointPositions.first.latitude;
+              vehicleLng.value = waypointPositions.first.longitude;
+              _previousLat = vehicleLat.value;
+              _previousLng = vehicleLng.value;
+              await addWaypointMarkers();
+              await drawRoute();
+            }
+          }
+        });
       }
     }
   }
@@ -424,6 +490,7 @@ class DriveController extends GetxController
       await drawRoute();
       recenter();
       _updateVehicleMarker();
+      speak('Starting route navigation. Follow the highlighted road.');
     } else {
       Get.snackbar(
         'Error',
@@ -493,6 +560,7 @@ class DriveController extends GetxController
       _hasRealGPS = true;
 
       _updateVehicleMarker();
+      _checkTurnByTurnGuidance(position.latitude, position.longitude);
 
       if (isTracking.value && mapController != null) {
         mapController!.animateCamera(
@@ -513,6 +581,42 @@ class DriveController extends GetxController
         drawRoute();
       }
     });
+  }
+
+  void _checkTurnByTurnGuidance(double lat, double lng) {
+    if (waypointPositions.isEmpty) return;
+    if (_nextWaypointIndex >= waypointPositions.length) return;
+
+    final targetWp = waypointPositions[_nextWaypointIndex];
+    final dist = Geolocator.distanceBetween(lat, lng, targetWp.latitude, targetWp.longitude);
+
+    final isDestination = _nextWaypointIndex == waypointPositions.length - 1;
+    final wpName = isDestination ? 'your destination' : 'waypoint $_nextWaypointIndex';
+
+    if (dist <= 60) {
+      if (isDestination) {
+        speak('You have arrived at your destination.');
+        _nextWaypointIndex++;
+      } else {
+        speak('Arrived at $wpName. Proceeding to next waypoint.');
+        _nextWaypointIndex++;
+        _notified500m = false;
+        _notified100m = false;
+      }
+      return;
+    }
+
+    if (dist <= 150 && !_notified100m) {
+      _notified100m = true;
+      speak('In 500 feet, reach $wpName.');
+      return;
+    }
+
+    if (dist <= 500 && !_notified500m) {
+      _notified500m = true;
+      speak('In a quarter mile, continue towards $wpName.');
+      return;
+    }
   }
 
   void _updateVehicleMarker() async {

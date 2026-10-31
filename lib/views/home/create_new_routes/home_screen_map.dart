@@ -889,14 +889,21 @@ class _HomeScreenMapState extends State<HomeScreenMap> with WidgetsBindingObserv
     _routeLine = null;
     _ctrl.lastMapCenter = null;
     _ctrl.lastMapZoom = 14.0;
-    _ctrl.startLat.value = '';
-    _ctrl.startLng.value = '';
-    _ctrl.startLocation.value = '';
+    
+    // Only clear start if it's permit 1 (for subsequent permits, start is locked to previous permit end)
+    if (_ctrl.currentPermitIndex.value <= 1) {
+      _ctrl.startLat.value = '';
+      _ctrl.startLng.value = '';
+      _ctrl.startLocation.value = '';
+    }
     _ctrl.endLat.value = '';
     _ctrl.endLng.value = '';
     _ctrl.endLocation.value = '';
     
     _updatePickingState();
+    if (_ctrl.currentPermitIndex.value > 1 && _ctrl.startLat.value.isNotEmpty) {
+      await _syncMarkersFromController();
+    }
   }
 
   void _onFeatureDrag(
@@ -908,18 +915,7 @@ class _HomeScreenMapState extends State<HomeScreenMap> with WidgetsBindingObserv
     dynamic annotation,
     DragEventType eventType,
   ) async {
-    if (eventType == DragEventType.start && annotation is Symbol) {
-      await mapController!.updateSymbol(
-          annotation, const SymbolOptions(iconSize: 2.5, iconOffset: Offset(0, 0)));
-      return;
-    }
-
     if (eventType != DragEventType.end) return;
-
-    if (annotation is Symbol) {
-      await mapController!.updateSymbol(
-          annotation, const SymbolOptions(iconSize: 1.0, iconOffset: Offset(0, 0)));
-    }
 
     final LatLng newCoords = current;
 

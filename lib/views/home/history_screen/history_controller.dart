@@ -7,6 +7,7 @@ import 'package:right_routes/utils/colors.dart';
 import 'package:right_routes/core/constants/services/api_client.dart';
 import 'package:right_routes/core/constants/api_config/home_api_constant/home_api_constant.dart';
 import 'package:dio/dio.dart' as dio;
+import 'package:right_routes/core/constants/services/offline_route_service.dart';
 
 /// ---------------------------------------------------------------------------
 /// CONTROLLER (GetX)
@@ -57,6 +58,38 @@ class HistoryController extends GetxController {
       }
     } catch (e) {
       debugPrint('Error fetching routes: $e');
+
+      // Fallback: check offline saved routes
+      try {
+        final offlineRoutes = await OfflineRouteService.getOfflineRoutes();
+        if (offlineRoutes.isNotEmpty) {
+          routes.value = offlineRoutes.map((r) {
+            String formattedDate = '';
+            if (r['downloadDate'] != null) {
+              final dt = DateTime.fromMillisecondsSinceEpoch(r['downloadDate'] as int);
+              formattedDate = '${dt.month.toString().padLeft(2, '0')}/${dt.day.toString().padLeft(2, '0')}/${dt.year}';
+            }
+            return RouteItem(
+              id: r['routeId']?.toString() ?? '',
+              date: formattedDate,
+              title: r['routeName'] ?? 'Offline Route',
+              isSelected: false.obs,
+            );
+          }).toList();
+
+          Get.snackbar(
+            'Offline Mode',
+            'No connection. Showing your downloaded offline routes.',
+            backgroundColor: const Color(0xFF2C4A7A),
+            colorText: Colors.white,
+            snackPosition: SnackPosition.TOP,
+          );
+          return;
+        }
+      } catch (cacheErr) {
+        debugPrint('Error loading offline routes: $cacheErr');
+      }
+
       String errorMsg = 'An error occurred while fetching routes';
       if (e is dio.DioException) {
         if (e.type == dio.DioExceptionType.connectionError || e.type == dio.DioExceptionType.connectionTimeout || e.type == dio.DioExceptionType.unknown) {

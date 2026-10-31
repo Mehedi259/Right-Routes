@@ -18,6 +18,7 @@ import 'package:right_routes/global_widgets/custom_info_dialog.dart';
 import 'package:right_routes/core/constants/api_config/map_config.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import '../drive_screen/drive_screen.dart';
+import '../homescreen.dart';
 
 // ─── Map Style ────────────────────────────────────────────────────────────────
 const _kMapStyle = MapConfig.mapStyle;
@@ -328,48 +329,72 @@ class _EditConfirmStartYourRouteState extends State<EditConfirmStartYourRoute> {
   }
 
   Widget _buildAddPermitButton(BuildContext context) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: GestureDetector(
-        onTap: () async {
-          if (controller.currentRouteId != null) {
-            Get.put(AfterConfirmController())
-                .initSubsequentPermit(controller.currentRouteId!);
-          }
-          await Get.toNamed(
-            AppRoutes.createRouteAfterConfirmRoute,
-            arguments: {'routeId': controller.currentRouteId},
-          );
-          if (controller.currentRouteId != null) {
-            controller.fetchRouteDetails(controller.currentRouteId!);
-          }
-        },
-        child: Obx(() => Container(
-              padding: EdgeInsets.symmetric(
-                  horizontal: context.w(8), vertical: context.h(3)),
-              decoration: BoxDecoration(
-                color: AppColors.orange,
-                borderRadius: BorderRadius.circular(context.r(7)),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.black.withValues(alpha: 0.25),
-                    blurRadius: 3,
-                    offset: const Offset(0, 1),
-                  ),
-                ],
-              ),
-              child: Text(
-                'Add Permit ${homeCtrl.currentPermitIndex.value + 1}',
-                style: TextStyle(
-                    color: AppColors.white,
-                    fontSize: context.sp(14),
-                    fontFamily: 'Lato',
-                    letterSpacing: 0.5,
-                    fontWeight: FontWeight.w900),
-              ),
-            )),
-      ),
-    );
+    return Obx(() {
+      final permitCount = controller.editablePermits.length;
+      if (permitCount >= 4) {
+        return const SizedBox.shrink();
+      }
+      final nextPermitNum = permitCount + 1;
+
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: GestureDetector(
+          onTap: () async {
+            LatLng? lastEndCoords;
+            String? lastEndAddress;
+            if (controller.editablePermits.isNotEmpty) {
+              final lastPermit = controller.editablePermits.last;
+              if (lastPermit.positions.isNotEmpty) {
+                lastEndCoords = lastPermit.positions.last;
+              }
+              if (lastPermit.waypoints.isNotEmpty) {
+                lastEndAddress = lastPermit.waypoints.last;
+              }
+            }
+
+            final hCtrl = Get.isRegistered<HomeController>()
+                ? Get.find<HomeController>()
+                : Get.put(HomeController(), permanent: true);
+
+            hCtrl.prepareForSubsequentPermit(
+              routeId: controller.currentRouteId ?? '',
+              permitIndex: nextPermitNum,
+              startCoords: lastEndCoords,
+              startAddress: lastEndAddress,
+            );
+
+            final res = await Get.to(() => const Homescreen());
+            if (res == true && controller.currentRouteId != null) {
+              await controller.fetchRouteDetails(controller.currentRouteId!);
+            }
+          },
+          child: Container(
+            padding: EdgeInsets.symmetric(
+                horizontal: context.w(8), vertical: context.h(3)),
+            decoration: BoxDecoration(
+              color: AppColors.orange,
+              borderRadius: BorderRadius.circular(context.r(7)),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.black.withValues(alpha: 0.25),
+                  blurRadius: 3,
+                  offset: const Offset(0, 1),
+                ),
+              ],
+            ),
+            child: Text(
+              'Add Permit $nextPermitNum',
+              style: TextStyle(
+                  color: AppColors.white,
+                  fontSize: context.sp(14),
+                  fontFamily: 'Lato',
+                  letterSpacing: 0.5,
+                  fontWeight: FontWeight.w900),
+            ),
+          ),
+        ),
+      );
+    });
   }
 
   Widget _buildTotalMilesText(BuildContext context) {
@@ -390,33 +415,34 @@ class _EditConfirmStartYourRouteState extends State<EditConfirmStartYourRoute> {
       height: height,
       child: Stack(
         children: [
-          MapLibreMap(
-            styleString: _kMapStyle,
-            initialCameraPosition: CameraPosition(
-              target: controller.currentLocation,
-              zoom: controller.currentLocation.latitude == 39.8283 ? 4.0 : 11.0,
-            ),
-            onMapCreated: controller.onMapCreated,
-            onStyleLoadedCallback: controller.onStyleLoaded,
-            onCameraMove: controller.onCameraMove,
-            onMapClick: (point, latLng) => controller.onMapClick(latLng),
-            onMapLongClick: (point, latLng) =>
-                controller.onMapLongClick(latLng),
-            gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
-              Factory<OneSequenceGestureRecognizer>(
-                () => EagerGestureRecognizer(),
-              ),
-            },
-            myLocationEnabled: true,
-            myLocationTrackingMode: MyLocationTrackingMode.none,
-            compassEnabled: true,
-            rotateGesturesEnabled: true,
-            scrollGesturesEnabled: true,
-            tiltGesturesEnabled: true,
-            zoomGesturesEnabled: true,
-            doubleClickZoomEnabled: false,
-            minMaxZoomPreference: const MinMaxZoomPreference(1, 20),
-          ),
+          Obx(() => MapLibreMap(
+                styleString: _kMapStyle,
+                initialCameraPosition: CameraPosition(
+                  target: controller.currentLocation,
+                  zoom: controller.currentLocation.latitude == 39.8283 ? 4.0 : 11.0,
+                ),
+                onMapCreated: controller.onMapCreated,
+                onStyleLoadedCallback: controller.onStyleLoaded,
+                onCameraMove: controller.onCameraMove,
+                trackCameraPosition: true,
+                onMapClick: (point, latLng) => controller.onMapClick(latLng),
+                onMapLongClick: (point, latLng) =>
+                    controller.onMapLongClick(latLng),
+                gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+                  Factory<OneSequenceGestureRecognizer>(
+                    () => EagerGestureRecognizer(),
+                  ),
+                },
+                myLocationEnabled: true,
+                myLocationTrackingMode: MyLocationTrackingMode.none,
+                compassEnabled: true,
+                rotateGesturesEnabled: true,
+                scrollGesturesEnabled: !controller.isDragging.value,
+                tiltGesturesEnabled: true,
+                zoomGesturesEnabled: true,
+                doubleClickZoomEnabled: false,
+                minMaxZoomPreference: const MinMaxZoomPreference(1, 20),
+              )),
           Positioned(
             top: context.h(10),
             right: context.w(10),
@@ -1278,34 +1304,35 @@ class FullScreenMap extends StatelessWidget {
           height: double.infinity,
           child: Stack(
             children: [
-              MapLibreMap(
-                styleString: _kMapStyle,
-                initialCameraPosition: initialCameraPosition ??
-                    CameraPosition(
-                      target: controller.currentLocation,
-                      zoom: 11.0,
-                    ),
-                onMapCreated: controller.onMapCreated,
-                onStyleLoadedCallback: controller.onStyleLoaded,
-                onCameraMove: controller.onCameraMove,
-                onMapClick: (point, latLng) => controller.onMapClick(latLng),
-                onMapLongClick: (point, latLng) =>
-                    controller.onMapLongClick(latLng),
-                gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
-                  Factory<OneSequenceGestureRecognizer>(
-                        () => EagerGestureRecognizer(),
-                  ),
-                },
-                myLocationEnabled: true,
-                myLocationTrackingMode: MyLocationTrackingMode.none,
-                compassEnabled: true,
-                rotateGesturesEnabled: true,
-                scrollGesturesEnabled: true,
-                tiltGesturesEnabled: true,
-                zoomGesturesEnabled: true,
-                doubleClickZoomEnabled: false,
-                minMaxZoomPreference: const MinMaxZoomPreference(1, 20),
-              ),
+              Obx(() => MapLibreMap(
+                    styleString: _kMapStyle,
+                    initialCameraPosition: initialCameraPosition ??
+                        CameraPosition(
+                          target: controller.currentLocation,
+                          zoom: 11.0,
+                        ),
+                    onMapCreated: controller.onMapCreated,
+                    onStyleLoadedCallback: controller.onStyleLoaded,
+                    onCameraMove: controller.onCameraMove,
+                    trackCameraPosition: true,
+                    onMapClick: (point, latLng) => controller.onMapClick(latLng),
+                    onMapLongClick: (point, latLng) =>
+                        controller.onMapLongClick(latLng),
+                    gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+                      Factory<OneSequenceGestureRecognizer>(
+                            () => EagerGestureRecognizer(),
+                      ),
+                    },
+                    myLocationEnabled: true,
+                    myLocationTrackingMode: MyLocationTrackingMode.none,
+                    compassEnabled: true,
+                    rotateGesturesEnabled: true,
+                    scrollGesturesEnabled: !controller.isDragging.value,
+                    tiltGesturesEnabled: true,
+                    zoomGesturesEnabled: true,
+                    doubleClickZoomEnabled: false,
+                    minMaxZoomPreference: const MinMaxZoomPreference(1, 20),
+                  )),
               Positioned(
                 top: context.h(10),
                 right: context.w(10),

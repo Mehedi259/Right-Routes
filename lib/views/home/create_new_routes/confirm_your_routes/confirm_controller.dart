@@ -1,5 +1,6 @@
-import 'dart:math' show Point;
+import 'dart:math' as math;
 import 'dart:async';
+import 'package:right_routes/core/constants/services/offline_route_service.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
@@ -45,7 +46,8 @@ class ConfirmRouteController extends GetxController {
       'https://router.project-osrm.org/route/v1/driving';
   static const Duration _osrmTimeout = Duration(seconds: 15);
   static const int _osrmMaxRetries = 2;
-  static const double _pinTapThreshold = 0.003;
+  double get _pinTapThreshold =>
+      (0.003 * math.pow(2, (11.0 - _mapZoom).clamp(-10.0, 4.0))).toDouble();
 
   // ─────────────────────────────────────────────────────────────
   // PUBLIC OBSERVABLES  (view binds here)
@@ -351,8 +353,58 @@ class ConfirmRouteController extends GetxController {
       }
     } catch (e) {
       debugPrint('❌ [FetchRouteDetails] Error: $e');
+      await _loadFromOfflineCache(routeId);
     } finally {
       isRouteLoading.value = false;
+    }
+  }
+
+  Future<void> _loadFromOfflineCache(String routeId) async {
+    try {
+      final offlineRoutes = await OfflineRouteService.getOfflineRoutes();
+      final match = offlineRoutes.firstWhereOrNull((r) => r['routeId']?.toString() == routeId);
+      if (match != null) {
+        debugPrint('📱 [ConfirmRouteController] Loaded route $routeId from offline cache');
+        routeNameController.text = match['routeName'] ?? 'Offline Route';
+
+        for (var p in editablePermits) {
+          p.dispose();
+        }
+        editablePermits.clear();
+
+        final wpList = match['waypoints'] as List? ?? [];
+        if (wpList.isNotEmpty) {
+          final state = PermitState(permitId: 'offline');
+          for (int i = 0; i < wpList.length; i++) {
+            final wp = wpList[i];
+            final lat = (wp['lat'] as num?)?.toDouble() ?? 0.0;
+            final lng = (wp['lng'] as num?)?.toDouble() ?? 0.0;
+            String name = i == 0 ? 'Start Point' : (i == wpList.length - 1 ? 'End Point' : 'Waypoint $i');
+            _appendWaypoint(state, name, LatLng(lat, lng), null);
+          }
+          state.isExpanded.value = true;
+          editablePermits.add(state);
+
+          if (state.positions.isNotEmpty) {
+            currentLocation = state.positions.first;
+            _mapCenter = state.positions.first;
+          }
+
+          if (isMapReady.value && mapController != null) {
+            await _refreshMap();
+          }
+
+          Get.snackbar(
+            'Offline Mode',
+            'Loaded route from offline storage.',
+            backgroundColor: const Color(0xFF2C4A7A),
+            colorText: Colors.white,
+            duration: const Duration(seconds: 3),
+          );
+        }
+      }
+    } catch (cacheErr) {
+      debugPrint('❌ [OfflineCache] Failed to load offline route: $cacheErr');
     }
   }
 
@@ -372,7 +424,7 @@ class ConfirmRouteController extends GetxController {
     });
 
     controller.onFeatureDrag.add((
-      Point<double> point,
+      math.Point<double> point,
       LatLng origin,
       LatLng current,
       LatLng delta,
@@ -390,14 +442,6 @@ class ConfirmRouteController extends GetxController {
 
       if (eventType == DragEventType.start) {
         isDragging.value = true;
-        final bool isStartOrEnd = wpIndex == 0 || (wpIndex == permit.positions.length - 1 && permit.positions.length > 1);
-        await mapController!.updateSymbol(
-            annotation,
-            SymbolOptions(
-              iconSize: isStartOrEnd ? 2.5 : 1.2,
-              iconOffset: const Offset(0, 0),
-              textOffset: isStartOrEnd ? null : const Offset(0, 0.6),
-            ));
         return;
       }
 
@@ -491,8 +535,54 @@ class ConfirmRouteController extends GetxController {
     if (mapping != null) {
       _handlePinTap(mapping['permitIndex']!, mapping['waypointIndex']!);
     } else {
-      _deselectAll();
+      if (selectedPermitIndex.value >= 0 && selectedWaypointIndex.value >= 0) {
+        await moveSelectedPinTo(point);
+      } else {
+        _deselectAll();
+      }
     }
+  }
+
+  Future<void> moveSelectedPinTo(LatLng newPoint) async {
+    final pIdx = selectedPermitIndex.value;
+    final wpIdx = selectedWaypointIndex.value;
+    if (pIdx < 0 || pIdx >= editablePermits.length) return;
+    final permit = editablePermits[pIdx];
+    if (wpIdx < 0 || wpIdx >= permit.positions.length) return;
+
+    permit.positions[wpIdx] = newPoint;
+    final refreshFuture = _refreshMap();
+
+    Future.microtask(() async {
+      final address = await _reverseGeocode(newPoint.latitude, newPoint.longitude);
+      if (wpIdx < permit.waypoints.length) {
+        permit.waypoints[wpIdx] = address;
+        permit.waypoints.refresh();
+      }
+      if (wpIdx < permit.waypointControllers.length) {
+        permit.waypointControllers[wpIdx].text = address;
+      }
+
+      if (currentRouteId != null && permit.permitId != 'new') {
+        final wId = permit.waypointIds[wpIdx];
+        if (wId != null) {
+          final url = Uri.parse(
+              '${HomeApiConstant.baseUrl}/route/$currentRouteId/permit/${permit.permitId}/waypoint/$wId/');
+          final formData = dio.FormData.fromMap({
+            'latitude': newPoint.latitude.toString(),
+            'longitude': newPoint.longitude.toString(),
+            'name': address,
+          });
+          try {
+            await ApiClient.sendMultipartRequest(url, data: formData, method: 'PATCH');
+          } catch (e) {
+            debugPrint('❌ Failed to update waypoint on server: $e');
+          }
+        }
+      }
+    });
+
+    await refreshFuture;
   }
 
   Future<void> onMapLongClick(LatLng point) async {

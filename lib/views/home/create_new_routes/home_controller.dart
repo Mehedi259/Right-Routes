@@ -304,6 +304,8 @@ class HomeController extends GetxController {
   LatLng? lastMapCenter;
   double lastMapZoom = 14.0;
 
+  String? subsequentRouteId;
+
   final RxList<DraftRouteModel> draftRoutes = <DraftRouteModel>[
     const DraftRouteModel(
         name: 'Downtown Loop', date: 'Apr 28, 2026', stops: 12),
@@ -515,6 +517,113 @@ class HomeController extends GetxController {
           colorText: Colors.white,
           snackPosition: SnackPosition.TOP,
           duration: const Duration(seconds: 2));
+    }
+  }
+
+  void prepareForSubsequentPermit({
+    required String routeId,
+    required int permitIndex,
+    LatLng? startCoords,
+    String? startAddress,
+  }) {
+    subsequentRouteId = routeId;
+    currentPermitIndex.value = permitIndex;
+    choiceMode.value = '';
+    buildRouteTextController.clear();
+    buildRouteText.value = '';
+    permitFile.value = null;
+    permitText.value = '';
+    activeAction.value = '';
+    showMapSection.value = false;
+    isMapFullScreen.value = false;
+    errorMsg.value = '';
+    isCreating.value = false;
+
+    if (startCoords != null) {
+      startLat.value = startCoords.latitude.toString();
+      startLng.value = startCoords.longitude.toString();
+      startLocation.value = (startAddress != null && startAddress.isNotEmpty)
+          ? startAddress
+          : 'Start Point';
+      lastMapCenter = startCoords;
+      lastMapZoom = 14.0;
+    } else {
+      startLat.value = '';
+      startLng.value = '';
+      startLocation.value = '';
+    }
+
+    endLat.value = '';
+    endLng.value = '';
+    endLocation.value = '';
+    endPointController.clear();
+  }
+
+  Future<void> submitCreateSubsequentPermit() async {
+    if (subsequentRouteId == null) {
+      errorMsg.value = 'Route ID is missing';
+      return;
+    }
+    if (endLat.value.isEmpty || endLng.value.isEmpty) {
+      errorMsg.value = 'End location is required';
+      Get.snackbar('Error', errorMsg.value,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+          snackPosition: SnackPosition.TOP,
+          duration: const Duration(seconds: 1));
+      return;
+    }
+    if (permitText.value.isEmpty && permitFile.value == null) {
+      errorMsg.value = 'Document is required';
+      Get.snackbar('Error', errorMsg.value,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+          snackPosition: SnackPosition.TOP,
+          duration: const Duration(seconds: 1));
+      return;
+    }
+
+    isCreating.value = true;
+    errorMsg.value = '';
+
+    debugPrint('🔘 [HomeController] Submitting Subsequent Permit for Route $subsequentRouteId');
+    final result = await CreateRouteService.createSubsequentPermit(
+      routeId: subsequentRouteId!,
+      startLocation:
+          startLocation.value.isEmpty ? 'Unknown Start' : startLocation.value,
+      startLatitude: startLat.value,
+      startLongitude: startLng.value,
+      endLocation:
+          endLocation.value.isEmpty ? 'Unknown End' : endLocation.value,
+      endLatitude: endLat.value,
+      endLongitude: endLng.value,
+      permitText: permitText.value,
+      permitFile: permitFile.value,
+    );
+
+    isCreating.value = false;
+
+    if (result['success'] == true) {
+      Get.snackbar(
+        'Success',
+        result['message'] ?? 'Permit created successfully',
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.TOP,
+        duration: const Duration(seconds: 1),
+      );
+      Get.back(result: true);
+    } else {
+      String msg = result['message'] ?? 'Failed to create permit';
+      errorMsg.value = msg;
+      Get.snackbar(
+        'Error',
+        msg,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.TOP,
+        duration: const Duration(seconds: 2),
+      );
     }
   }
 

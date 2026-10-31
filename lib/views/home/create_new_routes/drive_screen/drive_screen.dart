@@ -4,6 +4,7 @@ import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:right_routes/global_widgets/custom_navbar.dart';
 import 'package:right_routes/utils/responsive_ext.dart';
 import 'package:right_routes/core/constants/api_config/map_config.dart';
+import 'package:right_routes/utils/colors.dart';
 import 'drive_controller.dart';
 
 class DriveRouteMap extends StatelessWidget {
@@ -50,6 +51,29 @@ class DriveRouteMap extends StatelessWidget {
               tiltGesturesEnabled: true,
               zoomGesturesEnabled: true,
             ),
+          ),
+
+          // ═══════════════════════════════════════════════════════════
+          // VOICE GUIDANCE BUTTON
+          // ═══════════════════════════════════════════════════════════
+          Positioned(
+            top: context.h(45),
+            right: context.w(15),
+            child: Obx(() => FloatingActionButton.small(
+                  heroTag: 'voice_toggle_btn',
+                  backgroundColor:
+                      const Color(0xFF0B1129).withValues(alpha: 0.85),
+                  onPressed: ctrl.toggleVoiceMute,
+                  child: Icon(
+                    ctrl.isVoiceMuted.value
+                        ? Icons.volume_off
+                        : Icons.volume_up,
+                    color: ctrl.isVoiceMuted.value
+                        ? Colors.red
+                        : AppColors.orange,
+                    size: context.sp(22),
+                  ),
+                )),
           ),
 
           // ═══════════════════════════════════════════════════════════
