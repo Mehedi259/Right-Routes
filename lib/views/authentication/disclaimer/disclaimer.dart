@@ -317,17 +317,22 @@ class DisclaimerModal extends StatelessWidget {
                                           fontWeight: FontWeight.w300,
                                           fontSize: context.sp(17))),
                                   TextSpan(
-                                      text: "7909 Lost River Road\n",
+                                      text: "1753 US Highway 40, Suite 2, PMB 15\n",
                                       style: TextStyle(
                                           fontWeight: FontWeight.w300,
                                           fontSize: context.sp(17))),
                                   TextSpan(
-                                      text: "Horace, ND 58047\n",
+                                      text: "Vernal UT 84078\n",
                                       style: TextStyle(
                                           fontWeight: FontWeight.w300,
                                           fontSize: context.sp(17))),
                                   TextSpan(
                                       text: "legal@getrightroute.app\n\n",
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.w300,
+                                          fontSize: context.sp(17))),
+                                  TextSpan(
+                                      text: "© Leavitt & Davis LLC. All rights reserved.\n\n",
                                       style: TextStyle(
                                           fontWeight: FontWeight.w300,
                                           fontSize: context.sp(17))),

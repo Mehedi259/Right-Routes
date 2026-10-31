@@ -132,7 +132,7 @@ class AreYouSureDeleteThisAccount extends StatelessWidget {
         ),
         Divider(color: AppColors.dividerColor, thickness: 1),
         Text(
-          'Right Route - Oversized Load Navigator',
+          'RightRoute - Oversized Load Navigator',
           style: TextStyle(
             color: Colors.white,
             fontSize: context.sp(20),

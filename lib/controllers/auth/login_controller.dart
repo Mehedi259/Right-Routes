@@ -181,12 +181,8 @@ class LoginController extends GetxController {
         await AuthService.saveLoginStatus(true);
         await AuthService.saveUserEmail(userEmail.value);
 
-        // Only save password if Touch ID is enabled (or we can always save it for biometric to work)
-        // Since biometric uses local device security, it is safe to save it securely when enabled.
-        if (isTouchIDEnabled.value) {
+        if (passwordController.text.trim().isNotEmpty) {
           await AuthService.saveUserPassword(passwordController.text.trim());
-        } else {
-          await AuthService.removeUserPassword();
         }
 
         _showSuccess(rawData['detail'] ?? 'Login successful!');

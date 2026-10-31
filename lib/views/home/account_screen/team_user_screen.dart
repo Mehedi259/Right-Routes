@@ -302,7 +302,7 @@ class TeamUserScreen extends StatelessWidget {
             Obx(() => Padding(
                   padding: EdgeInsets.symmetric(vertical: context.h(5)),
                   child: Text(
-                    c.showPassword.value ? (c.userPassword.value.isNotEmpty ? c.userPassword.value : "No Password") : "**********",
+                    c.showPassword.value ? (c.userPassword.value.isNotEmpty ? c.userPassword.value : "••••••••") : "••••••••",
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: context.sp(18),

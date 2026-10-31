@@ -51,13 +51,31 @@ class ManageAccountController extends GetxController {
         if (data['success'] == true && data['data'] != null) {
           final pData = data['data'];
 
-          final String pName = pData['plan_name'] ?? '';
-          final String bType = pData['billing_type'] ?? '';
-          final String pType = pData['plan_type'] ?? '';
+          final String pName = (pData['plan_name'] ?? '').toString().trim();
+          final String bType = (pData['billing_type'] ?? '').toString().trim();
+          final String pType = (pData['plan_type'] ?? '').toString().trim();
           
-          String fullPlanName = "$pName $bType".toLowerCase();
+          String fullPlanName = '';
+          if (pName.isNotEmpty && bType.isNotEmpty) {
+            if (pName.toLowerCase() == bType.toLowerCase() ||
+                pName.toLowerCase().contains(bType.toLowerCase())) {
+              fullPlanName = pName;
+            } else if (bType.toLowerCase().contains(pName.toLowerCase())) {
+              fullPlanName = bType;
+            } else {
+              fullPlanName = "$pName $bType";
+            }
+          } else {
+            fullPlanName = pName.isNotEmpty ? pName : bType;
+          }
+
           if (fullPlanName.isNotEmpty) {
-            fullPlanName = fullPlanName[0].toUpperCase() + fullPlanName.substring(1);
+            fullPlanName = fullPlanName
+                .split(' ')
+                .where((w) => w.isNotEmpty)
+                .map((w) => w[0].toUpperCase() + w.substring(1).toLowerCase())
+                .join(' ')
+                .trim();
           }
           planNameAndType.value = fullPlanName;
 
@@ -367,7 +385,7 @@ class AccountScreen extends StatelessWidget {
             Obx(() => Padding(
                   padding: EdgeInsets.symmetric(vertical: context.h(5)),
                   child: Text(
-                    c.showPassword.value ? (c.userPassword.value.isNotEmpty ? c.userPassword.value : "No Password") : "**********",
+                    c.showPassword.value ? (c.userPassword.value.isNotEmpty ? c.userPassword.value : "••••••••") : "••••••••",
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: context.sp(18),
@@ -461,7 +479,7 @@ class AccountScreen extends StatelessWidget {
         RRRightArrowTile(
           title: "Change Plan",
           fontWeight: FontWeight.w500,
-          // onTap: () => Get.toNamed(AppRoutes.chooseYourPlan),
+          onTap: () => Get.toNamed(AppRoutes.individualTeam),
         ),
         Obx(() {
           if (!c.isTeamPlan.value) return const SizedBox.shrink();
