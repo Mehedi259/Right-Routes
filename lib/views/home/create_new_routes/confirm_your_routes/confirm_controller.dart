@@ -638,7 +638,7 @@ class ConfirmRouteController extends GetxController {
             sym = await mapController!.addSymbol(SymbolOptions(
               geometry: permit.positions[i],
               iconImage: isStart ? 'start-icon' : 'end-icon',
-              iconSize: isSelected ? 1.2 : 1.0,
+              iconSize: isSelected ? 1.5 : 1.3, // was 1.2 : 1.0
               iconAnchor: 'center',
               zIndex: 100,
               draggable: true,
@@ -647,13 +647,13 @@ class ConfirmRouteController extends GetxController {
             sym = await mapController!.addSymbol(SymbolOptions(
               geometry: permit.positions[i],
               iconImage: 'pin-orange',
-              iconSize: isSelected ? 0.55 : 0.45,
+              iconSize: isSelected ? 0.8 : 0.7, // was 0.55 : 0.45
               textField: '$i',
-              textSize: 12.0,
-              textOffset: const Offset(0, 0.6),
+              textSize: 15.0, // was 12.0
+              textOffset: const Offset(0, 0.4),
               textColor: '#FFFFFF',
               textHaloColor: '#000000',
-              textHaloWidth: 1.8,
+              textHaloWidth: 2.0,
               textHaloBlur: 0.8,
               textAnchor: 'center',
               draggable: true,

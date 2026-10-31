@@ -54,26 +54,40 @@ class DriveRouteMap extends StatelessWidget {
           ),
 
           // ═══════════════════════════════════════════════════════════
-          // VOICE GUIDANCE BUTTON
+          // ✅ FIXED GUIDANCE MESSAGE BAR
           // ═══════════════════════════════════════════════════════════
           Positioned(
-            top: context.h(45),
-            right: context.w(15),
-            child: Obx(() => FloatingActionButton.small(
-                  heroTag: 'voice_toggle_btn',
-                  backgroundColor:
-                      const Color(0xFF0B1129).withValues(alpha: 0.85),
-                  onPressed: ctrl.toggleVoiceMute,
-                  child: Icon(
-                    ctrl.isVoiceMuted.value
-                        ? Icons.volume_off
-                        : Icons.volume_up,
-                    color: ctrl.isVoiceMuted.value
-                        ? Colors.red
-                        : AppColors.orange,
-                    size: context.sp(22),
+            bottom: context.h(50),
+            left: context.w(12),
+            right: context.w(12),
+            child: SafeArea(
+              top: false,
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: context.w(360)),
+                  child: Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: context.w(14),
+                      vertical: context.h(10),
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF606060), // Exact background color requested
+                      borderRadius: BorderRadius.circular(context.r(8)),
+                    ),
+                    child: Obx(() => Text(
+                          ctrl.currentGuidanceText.value,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: context.sp(17), // Same size as pop down messages
+                            fontFamily: 'Lato',
+                            fontWeight: FontWeight.bold,
+                          ),
+                        )),
                   ),
-                )),
+                ),
+              ),
+            ),
           ),
 
           // ═══════════════════════════════════════════════════════════
@@ -91,10 +105,7 @@ class DriveRouteMap extends StatelessWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      _btn(context, 'Back', () {
-                        ctrl.stopDriveApi();
-                        Get.back();
-                      }),
+                      _voiceToggleBtn(context, ctrl),
                       Obx(() => _btn(
                             context,
                             ctrl.isDownloading.value
@@ -120,6 +131,69 @@ class DriveRouteMap extends StatelessWidget {
   }
 
   // ═══════════════════════════════════════════════════════════
+  // ✅ VOICE TOGGLE BUTTON (REPLACED BACK BUTTON)
+  // ═══════════════════════════════════════════════════════════
+  Widget _voiceToggleBtn(BuildContext context, DriveController ctrl) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: ctrl.toggleVoiceMute,
+        child: Container(
+          height: context.h(26),
+          margin: EdgeInsets.symmetric(horizontal: context.w(3)),
+          padding: EdgeInsets.symmetric(horizontal: context.w(4)),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF28546), // Exact orange from image
+            borderRadius: BorderRadius.circular(context.r(6)),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'Voice',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: context.sp(13),
+                  fontFamily: 'Lato',
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(width: context.w(4)),
+              Obx(() {
+                final bool isOn = !ctrl.isVoiceMuted.value;
+                return Container(
+                  width: context.w(26),
+                  height: context.h(14),
+                  decoration: BoxDecoration(
+                    color: isOn ? const Color(0xFF4CAF50) : const Color(0xFF757575),
+                    borderRadius: BorderRadius.circular(context.r(10)),
+                  ),
+                  padding: const EdgeInsets.all(1.5),
+                  alignment: isOn ? Alignment.centerRight : Alignment.centerLeft,
+                  child: Container(
+                    width: context.w(11),
+                    height: context.h(11),
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black26,
+                          blurRadius: 1,
+                          offset: Offset(0, 1),
+                        )
+                      ],
+                    ),
+                  ),
+                );
+              }),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════
   // ✅ BUTTON WIDGET
   // ═══════════════════════════════════════════════════════════
   Widget _btn(BuildContext context, String text, VoidCallback onTap) {
@@ -127,8 +201,8 @@ class DriveRouteMap extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          height: context.h(24), // Slim button
-          margin: EdgeInsets.symmetric(horizontal: context.w(4)),
+          height: context.h(26), // Slim button matching Voice
+          margin: EdgeInsets.symmetric(horizontal: context.w(3)),
           decoration: BoxDecoration(
             color: const Color(0xFFF28546), // Exact orange from image
             borderRadius: BorderRadius.circular(context.r(6)),
@@ -138,7 +212,7 @@ class DriveRouteMap extends StatelessWidget {
               text,
               style: TextStyle(
                 color: Colors.white,
-                fontSize: context.sp(16),
+                fontSize: context.sp(14),
                 fontFamily: 'Lato',
                 fontWeight: FontWeight.bold,
               ),

@@ -53,10 +53,47 @@ class DriveController extends GetxController
 
   final FlutterTts _tts = FlutterTts();
   final RxBool isVoiceMuted = false.obs;
+  final RxString currentGuidanceText = 'Drive on this road for 10.3 miles.'.obs;
   int _nextWaypointIndex = 1;
   bool _notified500m = false;
   bool _notified100m = false;
   String _lastSpoken = '';
+
+  void showPopDown(
+    String title,
+    String message, {
+    Color? backgroundColor,
+    Duration? duration,
+    SnackPosition snackPosition = SnackPosition.TOP,
+  }) {
+    Get.snackbar(
+      title,
+      message,
+      titleText: Text(
+        title,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 19.0, // 3 pts larger than default 16
+          fontWeight: FontWeight.bold,
+          fontFamily: 'Lato',
+        ),
+      ),
+      messageText: Text(
+        message,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 17.0, // 3 pts larger than default 14
+          fontFamily: 'Lato',
+        ),
+      ),
+      snackPosition: snackPosition,
+      backgroundColor: backgroundColor ?? Colors.blue.withValues(alpha: 0.9),
+      colorText: Colors.white,
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      borderRadius: 10,
+      duration: duration ?? const Duration(seconds: 4),
+    );
+  }
 
   @override
   void onInit() {
@@ -98,7 +135,9 @@ class DriveController extends GetxController
   }
 
   Future<void> speak(String text) async {
-    if (isVoiceMuted.value || text.isEmpty) return;
+    if (text.isEmpty) return;
+    currentGuidanceText.value = text;
+    if (isVoiceMuted.value) return;
     if (_lastSpoken == text) return;
     _lastSpoken = text;
     try {
@@ -149,6 +188,19 @@ class DriveController extends GetxController
           vehicleLng.value = waypointPositions.first.longitude;
           _previousLat = vehicleLat.value;
           _previousLng = vehicleLng.value;
+          if (waypointPositions.length >= 2) {
+            final distMeters = Geolocator.distanceBetween(
+              waypointPositions[0].latitude,
+              waypointPositions[0].longitude,
+              waypointPositions[1].latitude,
+              waypointPositions[1].longitude,
+            );
+            final distMiles = distMeters / 1609.34;
+            final formatted = distMiles >= 0.2
+                ? '${distMiles.toStringAsFixed(1)} miles'
+                : '${(distMeters * 3.28084).round()} feet';
+            currentGuidanceText.value = 'Drive on this road for $formatted.';
+          }
         }
       }
 
@@ -186,12 +238,10 @@ class DriveController extends GetxController
     try {
       final success = await RoutePermitService.startDrive(routeId);
       if (success && !isClosed) {
-        Get.snackbar(
+        showPopDown(
           'Drive Started',
           'Server navigation state started',
           backgroundColor: Colors.green.withValues(alpha: 0.9),
-          colorText: Colors.white,
-          snackPosition: SnackPosition.TOP,
           duration: const Duration(seconds: 3),
         );
       }
@@ -206,12 +256,10 @@ class DriveController extends GetxController
     try {
       final success = await RoutePermitService.stopDrive(routeId);
       if (success && !isClosed) {
-        Get.snackbar(
+        showPopDown(
           'Drive Stopped',
           'Server navigation state stopped',
           backgroundColor: Colors.orange.withValues(alpha: 0.9),
-          colorText: Colors.white,
-          snackPosition: SnackPosition.TOP,
           duration: const Duration(seconds: 3),
         );
       }
@@ -236,12 +284,10 @@ class DriveController extends GetxController
     }
 
     if (targetPoints.isEmpty) {
-      Get.snackbar(
+      showPopDown(
         'Location Required',
         'Cannot download map: current location or route waypoints are not available.',
         backgroundColor: Colors.orange.withValues(alpha: 0.9),
-        colorText: Colors.white,
-        snackPosition: SnackPosition.TOP,
         duration: const Duration(seconds: 3),
       );
       return;
@@ -250,12 +296,10 @@ class DriveController extends GetxController
     isDownloading.value = true;
     downloadProgress.value = 0.0;
 
-    Get.snackbar(
+    showPopDown(
       'Downloading Map',
       'Downloading map for offline usage. Please stay on this screen...',
-      snackPosition: SnackPosition.TOP,
       backgroundColor: Colors.blue.withValues(alpha: 0.9),
-      colorText: Colors.white,
       duration: const Duration(seconds: 4),
     );
 
@@ -366,12 +410,10 @@ class DriveController extends GetxController
 
       isDownloading.value = false;
 
-      Get.snackbar(
+      showPopDown(
         'Download Complete',
         'Map has been successfully saved for offline use.',
         backgroundColor: Colors.green.withValues(alpha: 0.9),
-        colorText: Colors.white,
-        snackPosition: SnackPosition.TOP,
         duration: const Duration(seconds: 3),
       );
     } catch (e) {
@@ -383,12 +425,10 @@ class DriveController extends GetxController
         errorMsg = 'Route is too large to download at once. Please try a smaller area.';
       }
 
-      Get.snackbar(
+      showPopDown(
         'Download Failed',
         errorMsg,
         backgroundColor: Colors.red.withValues(alpha: 0.9),
-        colorText: Colors.white,
-        snackPosition: SnackPosition.TOP,
         duration: const Duration(seconds: 5),
       );
     }
@@ -400,12 +440,10 @@ class DriveController extends GetxController
     try {
       final success = await RoutePermitService.cancelDrive(routeId);
       if (success && !isClosed) {
-        Get.snackbar(
+        showPopDown(
           'Drive Cancelled',
           'Server navigation state cancelled',
           backgroundColor: Colors.red.withValues(alpha: 0.9),
-          colorText: Colors.white,
-          snackPosition: SnackPosition.TOP,
           duration: const Duration(seconds: 3),
         );
       }
@@ -447,11 +485,10 @@ class DriveController extends GetxController
       await _initializeFromWaypoints();
       _startTracking();
     } else {
-      Get.snackbar(
+      showPopDown(
         'Permission Required',
         'Please enable location permission',
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
+        backgroundColor: Colors.red.withValues(alpha: 0.9),
       );
       await _initializeFromWaypoints();
     }
@@ -492,11 +529,10 @@ class DriveController extends GetxController
       _updateVehicleMarker();
       speak('Starting route navigation. Follow the highlighted road.');
     } else {
-      Get.snackbar(
+      showPopDown(
         'Error',
         'No route data or location available',
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
+        backgroundColor: Colors.red.withValues(alpha: 0.9),
       );
     }
   }
@@ -588,12 +624,13 @@ class DriveController extends GetxController
     if (_nextWaypointIndex >= waypointPositions.length) return;
 
     final targetWp = waypointPositions[_nextWaypointIndex];
-    final dist = Geolocator.distanceBetween(lat, lng, targetWp.latitude, targetWp.longitude);
+    final distMeters = Geolocator.distanceBetween(lat, lng, targetWp.latitude, targetWp.longitude);
+    final distMiles = distMeters / 1609.34;
 
     final isDestination = _nextWaypointIndex == waypointPositions.length - 1;
     final wpName = isDestination ? 'your destination' : 'waypoint $_nextWaypointIndex';
 
-    if (dist <= 60) {
+    if (distMeters <= 60) {
       if (isDestination) {
         speak('You have arrived at your destination.');
         _nextWaypointIndex++;
@@ -606,16 +643,24 @@ class DriveController extends GetxController
       return;
     }
 
-    if (dist <= 150 && !_notified100m) {
+    if (distMeters <= 150 && !_notified100m) {
       _notified100m = true;
       speak('In 500 feet, reach $wpName.');
       return;
     }
 
-    if (dist <= 500 && !_notified500m) {
+    if (distMeters <= 500 && !_notified500m) {
       _notified500m = true;
       speak('In a quarter mile, continue towards $wpName.');
       return;
+    }
+
+    // Continuous road guidance matching sample: "Drive on this road for X.X miles."
+    if (!_notified100m && !_notified500m) {
+      final formatted = distMiles >= 0.2
+          ? '${distMiles.toStringAsFixed(1)} miles'
+          : '${(distMeters * 3.28084).round()} feet';
+      currentGuidanceText.value = 'Drive on this road for $formatted.';
     }
   }
 
@@ -686,7 +731,7 @@ class DriveController extends GetxController
           final sym = await mapController!.addSymbol(SymbolOptions(
             geometry: waypointPositions[i],
             iconImage: isStart ? 'start-icon' : 'end-icon',
-            iconSize: 1.0,
+            iconSize: 1.3, // Larger pin icon
             iconAnchor: 'center',
             zIndex: 100,
             draggable: false,
@@ -701,14 +746,15 @@ class DriveController extends GetxController
             final sym = await mapController!.addSymbol(SymbolOptions(
               geometry: waypointPositions[i],
               iconImage: 'wp-pin',
-              iconSize: 0.45,
+              iconSize: 0.75, // Significantly larger pin (was 0.45)
               textField: '$i',
-              textSize: 10.0,
-              textOffset: const Offset(0, 1.2),
+              textSize: 15.0, // Larger waypoint number (was 10.0)
+              textOffset: const Offset(0, 0.4),
               textColor: '#FFFFFF',
               textHaloColor: '#000000',
-              textHaloWidth: 1.5,
-              textHaloBlur: 0.5,
+              textHaloWidth: 2.0,
+              textHaloBlur: 0.8,
+              textAnchor: 'center',
               zIndex: 1,
               draggable: false,
             ));
@@ -850,12 +896,10 @@ class DriveController extends GetxController
         }
         
         if (_fullRouteGeometry == null) {
-          Get.snackbar(
+          showPopDown(
             'Offline Mode / Route Error',
             'Could not fetch road geometry. Drawing a direct straight line instead.',
             backgroundColor: Colors.orange.shade700,
-            colorText: Colors.white,
-            snackPosition: SnackPosition.TOP,
           );
           _fullRouteGeometry = cleanWaypoints; // Fallback to straight lines
         }
