@@ -155,20 +155,59 @@ class AfterConfirmController extends GetxController {
     if (result['success'] == true) {
       AuthService.clearDraftRouteData('after_confirm');
       Get.snackbar(
-          'Success', result['message'] ?? 'Permit created successfully',
-          backgroundColor: Colors.green,
-          colorText: Colors.white,
-          snackPosition: SnackPosition.TOP,
-          duration: const Duration(seconds: 1));
+        'Success',
+        result['message'] ?? 'Permit created successfully',
+        titleText: const Text(
+          'Success',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 21.0,
+            fontWeight: FontWeight.bold,
+            fontFamily: 'Lato',
+          ),
+        ),
+        messageText: Text(
+          result['message'] ?? 'Permit created successfully',
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 19.0,
+            fontFamily: 'Lato',
+          ),
+        ),
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.TOP,
+        duration: const Duration(seconds: 1),
+      );
       return true;
     } else {
       String msg = result['message'] ?? 'Failed to create permit';
       errorMsg.value = msg;
-      Get.snackbar('Error', msg,
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-          snackPosition: SnackPosition.TOP,
-          duration: const Duration(seconds: 2));
+      Get.snackbar(
+        'Error',
+        msg,
+        titleText: const Text(
+          'Error',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 21.0,
+            fontWeight: FontWeight.bold,
+            fontFamily: 'Lato',
+          ),
+        ),
+        messageText: Text(
+          msg,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 19.0,
+            fontFamily: 'Lato',
+          ),
+        ),
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.TOP,
+        duration: const Duration(seconds: 2),
+      );
       return false;
     }
   }

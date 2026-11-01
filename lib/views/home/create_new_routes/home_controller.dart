@@ -253,12 +253,20 @@ class CreateRouteService {
       if (response.statusCode == 200 || response.statusCode == 201) {
         return {
           'success': true,
-          'message': body['message'] ?? 'Permit created successfully',
+          'message': (body is Map ? (body['message'] ?? 'Permit created successfully') : 'Permit created successfully'),
         };
       } else {
+        String msg = 'Failed to create permit';
+        if (body is Map) {
+          if (body['message'] != null) {
+            msg = body['message'].toString();
+          } else if (body['detail'] != null) {
+            msg = body['detail'].toString();
+          }
+        }
         return {
           'success': false,
-          'message': body['message'] ?? 'Failed to create permit',
+          'message': msg,
         };
       }
     } catch (e) {
@@ -491,7 +499,8 @@ class HomeController extends GetxController {
       final sLng = startLng.value;
       
       AuthService.clearDraftRouteData('home');
-      resetNewRouteData();
+      // Do not resetNewRouteData here so that tapping < Back from ConfirmYourRoutes
+      // returns the user directly to the set S & E points screen with their points intact.
       Get.snackbar('Success', result['message'] ?? 'Route created successfully',
           backgroundColor: Colors.green,
           colorText: Colors.white,
@@ -607,6 +616,23 @@ class HomeController extends GetxController {
       Get.snackbar(
         'Success',
         result['message'] ?? 'Permit created successfully',
+        titleText: const Text(
+          'Success',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 21.0,
+            fontWeight: FontWeight.bold,
+            fontFamily: 'Lato',
+          ),
+        ),
+        messageText: Text(
+          result['message'] ?? 'Permit created successfully',
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 19.0,
+            fontFamily: 'Lato',
+          ),
+        ),
         backgroundColor: Colors.green,
         colorText: Colors.white,
         snackPosition: SnackPosition.TOP,
@@ -619,6 +645,23 @@ class HomeController extends GetxController {
       Get.snackbar(
         'Error',
         msg,
+        titleText: const Text(
+          'Error',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 21.0,
+            fontWeight: FontWeight.bold,
+            fontFamily: 'Lato',
+          ),
+        ),
+        messageText: Text(
+          msg,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 19.0,
+            fontFamily: 'Lato',
+          ),
+        ),
         backgroundColor: Colors.red,
         colorText: Colors.white,
         snackPosition: SnackPosition.TOP,

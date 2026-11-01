@@ -79,7 +79,7 @@ class DriveRouteMap extends StatelessWidget {
                           ctrl.currentGuidanceText.value,
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: context.sp(17), // Same size as pop down messages
+                            fontSize: context.sp(19), // Same size as pop down messages
                             fontFamily: 'Lato',
                             fontWeight: FontWeight.bold,
                           ),

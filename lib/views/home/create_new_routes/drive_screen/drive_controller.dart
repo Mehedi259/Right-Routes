@@ -73,7 +73,7 @@ class DriveController extends GetxController
         title,
         style: const TextStyle(
           color: Colors.white,
-          fontSize: 19.0, // 3 pts larger than default 16
+          fontSize: 21.0, // 2 pts larger
           fontWeight: FontWeight.bold,
           fontFamily: 'Lato',
         ),
@@ -82,7 +82,7 @@ class DriveController extends GetxController
         message,
         style: const TextStyle(
           color: Colors.white,
-          fontSize: 17.0, // 3 pts larger than default 14
+          fontSize: 19.0, // 2 pts larger
           fontFamily: 'Lato',
         ),
       ),
@@ -943,27 +943,27 @@ class DriveController extends GetxController
       _routeLine = null;
     }
 
-    // 4. Draw passed route (Blue)
+    // 4. Draw passed route (Orange - traveled route behind truck)
     if (passedGeometry.length > 1) {
       try {
         _passedRouteLine = await mapController!.addLine(LineOptions(
           geometry: passedGeometry,
-          lineColor: '#2196F3', // Blue
+          lineColor: '#F58842', // Orange for traveled/passed route behind truck
           lineWidth: 8.0,
-          lineOpacity: 0.4,
+          lineOpacity: 0.85,
           lineJoin: 'round',
         ));
       } catch (_) {}
     }
 
-    // 5. Draw remaining route (Orange)
+    // 5. Draw remaining route (Dark Blue - route ahead of truck)
     if (remainingGeometry.length > 1) {
       try {
         _remainingRouteLine = await mapController!.addLine(LineOptions(
           geometry: remainingGeometry,
-          lineColor: '#F28546', // Orange
+          lineColor: '#1732A3', // Dark Blue for route ahead of truck
           lineWidth: 8.0,
-          lineOpacity: 0.4,
+          lineOpacity: 0.85,
           lineJoin: 'round',
         ));
       } catch (_) {}

@@ -98,11 +98,9 @@ class _EditConfirmStartYourRouteState extends State<EditConfirmStartYourRoute> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Center(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: context.w(20)),
-                      child: _buildTitle(context),
-                    ),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: context.w(15)),
+                    child: _buildHeader(context),
                   ),
                   SizedBox(height: context.h(14)),
                   Padding(
@@ -190,7 +188,7 @@ class _EditConfirmStartYourRouteState extends State<EditConfirmStartYourRoute> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Center(child: _buildTitle(context)),
+                      _buildHeader(context),
                       SizedBox(height: context.h(14)),
                       _sectionLabel(context, 'Route Name'),
                       SizedBox(height: context.h(6)),
@@ -245,6 +243,65 @@ class _EditConfirmStartYourRouteState extends State<EditConfirmStartYourRoute> {
   // ─────────────────────────────────────────────────────────────
   // SHARED WIDGETS
   // ─────────────────────────────────────────────────────────────
+
+  Widget _buildBackButton(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        homeCtrl.showMapSection.value = true;
+        homeCtrl.isMapFullScreen.value = false;
+
+        if (homeCtrl.startLat.value.isEmpty && controller.allPermits.isNotEmpty) {
+          final firstPermit = controller.allPermits.first;
+          homeCtrl.startLocation.value = firstPermit['start_location'] ?? '';
+          homeCtrl.startLat.value = firstPermit['start_latitude']?.toString() ?? '';
+          homeCtrl.startLng.value = firstPermit['start_longitude']?.toString() ?? '';
+          homeCtrl.endLocation.value = firstPermit['end_location'] ?? '';
+          homeCtrl.endLat.value = firstPermit['end_latitude']?.toString() ?? '';
+          homeCtrl.endLng.value = firstPermit['end_longitude']?.toString() ?? '';
+        }
+
+        if (Navigator.of(context).canPop()) {
+          Get.back();
+        } else {
+          Get.offNamed(AppRoutes.homeScreen);
+        }
+      },
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.chevron_left, color: AppColors.orange, size: context.sp(20)),
+          Text(
+            'Back',
+            style: TextStyle(
+              color: AppColors.orange,
+              fontSize: context.sp(15),
+              fontFamily: 'Lato',
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        Align(
+          alignment: Alignment.centerLeft,
+          child: _buildBackButton(context),
+        ),
+        Center(
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: context.w(65)),
+            child: _buildTitle(context),
+          ),
+        ),
+      ],
+    );
+  }
 
   Widget _buildTitle(BuildContext context) {
     return FittedBox(

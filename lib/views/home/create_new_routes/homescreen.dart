@@ -343,7 +343,7 @@ class _HomescreenState extends State<Homescreen> {
               child: FittedBox(
                 fit: BoxFit.scaleDown,
                 child: Text(
-                  label,
+                  label.toUpperCase(),
                   maxLines: 1,
                   style: TextStyle(
                     color: Colors.white,
@@ -399,7 +399,7 @@ class _HomescreenState extends State<Homescreen> {
               child: _buildChoiceButtonActive(
                 context,
                 icon: Icons.file_download_outlined,
-                label: 'Import\nPermit',
+                label: 'IMPORT\nPERMIT',
                 isActive: true,
                 onTap: _pickFile, // allow re-triggering file picker
               ),
@@ -409,7 +409,7 @@ class _HomescreenState extends State<Homescreen> {
               child: _buildChoiceButtonActive(
                 context,
                 icon: Icons.edit_outlined,
-                label: 'Build Your\nRoute',
+                label: 'BUILD YOUR\nROUTE',
                 isActive: false,
                 onTap: () => _ctrl.choiceMode.value = 'build',
               ),
@@ -430,24 +430,32 @@ class _HomescreenState extends State<Homescreen> {
       onTap: onTap,
       child: Container(
         height: context.h(50),
+        padding: EdgeInsets.symmetric(horizontal: context.w(6)),
         decoration: BoxDecoration(
           color: isActive ? AppColors.orange : AppColors.orange.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(context.r(10)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Icon(icon, color: Colors.white, size: context.sp(20)),
             SizedBox(width: context.w(6)),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: context.sp(13),
-                fontFamily: 'Lato',
-                fontWeight: FontWeight.w700,
-                height: 1.2,
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  label.toUpperCase(),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: context.sp(18),
+                    fontFamily: 'League Gothic',
+                    fontWeight: FontWeight.w400,
+                    letterSpacing: 1.2,
+                    height: 1.05,
+                  ),
+                ),
               ),
             ),
           ],
@@ -493,7 +501,7 @@ class _HomescreenState extends State<Homescreen> {
               child: _buildChoiceButtonActive(
                 context,
                 icon: Icons.file_download_outlined,
-                label: 'Import\nPermit',
+                label: 'IMPORT\nPERMIT',
                 isActive: false,
                 onTap: () => _ctrl.choiceMode.value = 'import',
               ),
@@ -503,7 +511,7 @@ class _HomescreenState extends State<Homescreen> {
               child: _buildChoiceButtonActive(
                 context,
                 icon: Icons.edit_outlined,
-                label: 'Build Your\nRoute',
+                label: 'BUILD YOUR\nROUTE',
                 isActive: true,
               ),
             ),
