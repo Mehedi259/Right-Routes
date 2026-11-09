@@ -23,7 +23,7 @@ class DriveRouteMap extends StatelessWidget {
           // ═══════════════════════════════════════════════════════════
           Listener(
             onPointerDown: (_) {
-              if (ctrl.isTracking.value) ctrl.isTracking.value = false;
+              ctrl.userInteractedWithMap();
             },
             child: MapLibreMap(
               styleString: MapConfig.mapStyle,

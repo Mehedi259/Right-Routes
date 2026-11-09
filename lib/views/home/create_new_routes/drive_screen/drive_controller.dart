@@ -33,6 +33,7 @@ class DriveController extends GetxController
   Line? _routeLine;
 
   final RxBool isTracking = true.obs;
+  Timer? _autoRecenterTimer;
 
   bool _hasRealGPS = false;
   double _metersSinceLastRedraw = 0;
@@ -112,6 +113,7 @@ class DriveController extends GetxController
 
   @override
   void onClose() {
+    _autoRecenterTimer?.cancel();
     _tts.stop();
     _simulationTimer?.cancel();
     _positionSubscription?.cancel();
@@ -560,7 +562,23 @@ class DriveController extends GetxController
       }
 
       double newBearing = vehicleBearing.value;
-      if (position.heading >= 0) {
+      if (position.speed > 1.0 && _previousLat != null && _previousLng != null) {
+        // Vehicle is moving: ground track GPS vector is the true travel bearing
+        double moveDist = Geolocator.distanceBetween(
+          _previousLat!,
+          _previousLng!,
+          position.latitude,
+          position.longitude,
+        );
+        if (moveDist > 2.0) {
+          newBearing = _calculateBearing(
+            _previousLat!,
+            _previousLng!,
+            position.latitude,
+            position.longitude,
+          );
+        }
+      } else if (position.heading > 0 && position.headingAccuracy < 45) {
         newBearing = position.heading;
       } else if (_previousLat != null && _previousLng != null) {
         double moveDist = Geolocator.distanceBetween(
@@ -569,7 +587,7 @@ class DriveController extends GetxController
           position.latitude,
           position.longitude,
         );
-        if (moveDist > 3) {
+        if (moveDist > 2.0) {
           newBearing = _calculateBearing(
             _previousLat!,
             _previousLng!,
@@ -664,6 +682,35 @@ class DriveController extends GetxController
     }
   }
 
+  void userInteractedWithMap() {
+    isTracking.value = false;
+    _autoRecenterTimer?.cancel();
+    _autoRecenterTimer = Timer(const Duration(seconds: 7), () {
+      if (mapController != null) {
+        recenter();
+      }
+    });
+  }
+
+  double _getVehicleScreenRotation() {
+    // MapLibre symbols on mobile are viewport-aligned (relative to screen).
+    // When tracking is active, the camera is rotated to vehicleBearing,
+    // so the road ahead goes straight UP. Thus the truck icon should point UP (0.0°).
+    // When free-camera/panning, calculate the delta between vehicle travel bearing and camera bearing.
+    if (isTracking.value) {
+      return 0.0;
+    }
+    double camBearing = 0.0;
+    try {
+      camBearing = mapController?.cameraPosition?.bearing ?? 0.0;
+    } catch (_) {
+      camBearing = 0.0;
+    }
+    double diff = (vehicleBearing.value - camBearing) % 360;
+    if (diff < 0) diff += 360;
+    return diff;
+  }
+
   void _updateVehicleMarker() async {
     if (mapController == null) return;
     if (!_hasRealGPS) {
@@ -678,13 +725,15 @@ class DriveController extends GetxController
       return;
     }
 
+    final double screenRotate = _getVehicleScreenRotation();
+
     if (_vehicleSymbol != null) {
       try {
         await mapController!.updateSymbol(
           _vehicleSymbol!,
           SymbolOptions(
             geometry: LatLng(vehicleLat.value, vehicleLng.value),
-            iconRotate: vehicleBearing.value,
+            iconRotate: screenRotate,
           ),
         );
       } catch (e) {
@@ -782,12 +831,13 @@ class DriveController extends GetxController
   Future<void> ensureVehicleSymbol() async {
     if (mapController == null || _vehicleSymbol != null || !_hasRealGPS) return;
     try {
+      final double screenRotate = _getVehicleScreenRotation();
       _vehicleSymbol = await mapController!.addSymbol(
         SymbolOptions(
           geometry: LatLng(vehicleLat.value, vehicleLng.value),
           iconImage: 'car-icon',
           iconSize: 0.8,
-          iconRotate: vehicleBearing.value,
+          iconRotate: screenRotate,
           iconAnchor: 'center',
         ),
       );
@@ -797,6 +847,7 @@ class DriveController extends GetxController
   }
 
   void recenter() {
+    _autoRecenterTimer?.cancel();
     isTracking.value = true;
     if (mapController != null) {
       mapController!.animateCamera(
@@ -808,8 +859,9 @@ class DriveController extends GetxController
             bearing: vehicleBearing.value,
           ),
         ),
-        duration: const Duration(milliseconds: 1000),
+        duration: const Duration(milliseconds: 800),
       );
+      _updateVehicleMarker();
     }
   }
 

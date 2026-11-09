@@ -116,6 +116,25 @@ class TeamManagerController extends GetxController {
           _updateUserCount();
         }
       }
+
+      // Fallback: If userLimit is still 0, check the team profile endpoint
+      if (userLimit.value == 0) {
+        try {
+          final teamUrl = Uri.parse('${HomeApiConstant.baseUrl}/team/');
+          final teamRes = await ApiClient.get(teamUrl);
+          if (teamRes.statusCode == 200) {
+            final tData = teamRes.data is String ? jsonDecode(teamRes.data) : teamRes.data;
+            if (tData['data'] != null) {
+              final int? maxM = tData['data']['max_members'];
+              if (maxM != null && maxM > 0) {
+                userLimit.value = maxM;
+                isTeamPlan.value = true;
+                _updateUserCount();
+              }
+            }
+          }
+        } catch (_) {}
+      }
     } catch (e) {
       debugPrint("Fetch subscription plan error: $e");
     }

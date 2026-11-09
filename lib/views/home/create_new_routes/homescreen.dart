@@ -246,7 +246,7 @@ class _HomescreenState extends State<Homescreen> {
       child: Obx(() => Text(
             'Permit ${_ctrl.currentPermitIndex.value}',
             style: TextStyle(
-              color: Colors.white,
+              color: const Color(0xFFF58842), // #F58842 orange per client request
               fontSize: context.sp(20),
               fontFamily: 'Lato',
               fontWeight: FontWeight.w700,
@@ -264,23 +264,60 @@ class _HomescreenState extends State<Homescreen> {
       children: [
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              'Choose one:',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: context.sp(17),
-                fontFamily: 'Lato',
-                fontWeight: FontWeight.w700,
-              ),
+            Row(
+              children: [
+                Text(
+                  'Choose one:',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: context.sp(17),
+                    fontFamily: 'Lato',
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                SizedBox(width: context.w(6)),
+                GestureDetector(
+                  onTap: () => showPermitDialog(context),
+                  child: SvgPicture.asset(
+                    'assets/icons/Question-Box-gray.svg',
+                    width: context.w(22),
+                    height: context.h(22),
+                  ),
+                ),
+              ],
             ),
-            SizedBox(width: context.w(6)),
             GestureDetector(
-              onTap: () => showPermitDialog(context),
-              child: SvgPicture.asset(
-                'assets/icons/Question-Box-gray.svg',
-                width: context.w(22),
-                height: context.h(22),
+              behavior: HitTestBehavior.opaque,
+              onTap: () {
+                _ctrl.permitText.value = '';
+                _ctrl.permitFile.value = null;
+                _ctrl.activeAction.value = 'skip';
+                _ctrl.showMapSection.value = true;
+              },
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: context.w(4), vertical: context.h(4)),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Skip',
+                      style: TextStyle(
+                        color: const Color(0xFFF58842),
+                        fontSize: context.sp(16),
+                        fontFamily: 'Lato',
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    SizedBox(width: context.w(2)),
+                    Icon(
+                      Icons.chevron_right,
+                      color: const Color(0xFFF58842),
+                      size: context.sp(18),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -295,8 +332,7 @@ class _HomescreenState extends State<Homescreen> {
                 icon: Icons.file_download_outlined,
                 label: 'IMPORT PERMIT',
                 onTap: () {
-                  _ctrl.choiceMode.value = 'import';
-                  _pickFile(); // directly open document picker
+                  _showImportOptions(context);
                 },
               ),
             ),
@@ -371,23 +407,60 @@ class _HomescreenState extends State<Homescreen> {
       children: [
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              'Choose one:',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: context.sp(17),
-                fontFamily: 'Lato',
-                fontWeight: FontWeight.w700,
-              ),
+            Row(
+              children: [
+                Text(
+                  'Choose one:',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: context.sp(17),
+                    fontFamily: 'Lato',
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                SizedBox(width: context.w(6)),
+                GestureDetector(
+                  onTap: () => showPermitDialog(context),
+                  child: SvgPicture.asset(
+                    'assets/icons/Question-Box-gray.svg',
+                    width: context.w(22),
+                    height: context.h(22),
+                  ),
+                ),
+              ],
             ),
-            SizedBox(width: context.w(6)),
             GestureDetector(
-              onTap: () => showPermitDialog(context),
-              child: SvgPicture.asset(
-                'assets/icons/Question-Box-gray.svg',
-                width: context.w(22),
-                height: context.h(22),
+              behavior: HitTestBehavior.opaque,
+              onTap: () {
+                _ctrl.permitText.value = '';
+                _ctrl.permitFile.value = null;
+                _ctrl.activeAction.value = 'skip';
+                _ctrl.showMapSection.value = true;
+              },
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: context.w(4), vertical: context.h(4)),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Skip',
+                      style: TextStyle(
+                        color: const Color(0xFFF58842),
+                        fontSize: context.sp(16),
+                        fontFamily: 'Lato',
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    SizedBox(width: context.w(2)),
+                    Icon(
+                      Icons.chevron_right,
+                      color: const Color(0xFFF58842),
+                      size: context.sp(18),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -401,7 +474,7 @@ class _HomescreenState extends State<Homescreen> {
                 icon: Icons.file_download_outlined,
                 label: 'IMPORT\nPERMIT',
                 isActive: true,
-                onTap: _pickFile, // allow re-triggering file picker
+                onTap: () => _showImportOptions(context),
               ),
             ),
             SizedBox(width: context.w(12)),
@@ -473,23 +546,60 @@ class _HomescreenState extends State<Homescreen> {
       children: [
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              'Choose one:',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: context.sp(17),
-                fontFamily: 'Lato',
-                fontWeight: FontWeight.w700,
-              ),
+            Row(
+              children: [
+                Text(
+                  'Choose one:',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: context.sp(17),
+                    fontFamily: 'Lato',
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                SizedBox(width: context.w(6)),
+                GestureDetector(
+                  onTap: () => showPermitDialog(context),
+                  child: SvgPicture.asset(
+                    'assets/icons/Question-Box-gray.svg',
+                    width: context.w(22),
+                    height: context.h(22),
+                  ),
+                ),
+              ],
             ),
-            SizedBox(width: context.w(6)),
             GestureDetector(
-              onTap: () => showPermitDialog(context),
-              child: SvgPicture.asset(
-                'assets/icons/Question-Box-gray.svg',
-                width: context.w(22),
-                height: context.h(22),
+              behavior: HitTestBehavior.opaque,
+              onTap: () {
+                _ctrl.permitText.value = '';
+                _ctrl.permitFile.value = null;
+                _ctrl.activeAction.value = 'skip';
+                _ctrl.showMapSection.value = true;
+              },
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: context.w(4), vertical: context.h(4)),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Skip',
+                      style: TextStyle(
+                        color: const Color(0xFFF58842),
+                        fontSize: context.sp(16),
+                        fontFamily: 'Lato',
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    SizedBox(width: context.w(2)),
+                    Icon(
+                      Icons.chevron_right,
+                      color: const Color(0xFFF58842),
+                      size: context.sp(18),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -503,7 +613,7 @@ class _HomescreenState extends State<Homescreen> {
                 icon: Icons.file_download_outlined,
                 label: 'IMPORT\nPERMIT',
                 isActive: false,
-                onTap: () => _ctrl.choiceMode.value = 'import',
+                onTap: () => _showImportOptions(context),
               ),
             ),
             SizedBox(width: context.w(12)),
@@ -710,37 +820,237 @@ class _HomescreenState extends State<Homescreen> {
   // ─────────────────────────────────────────────────────────────
   // Action buttons and Step 2 label removed as requested.
 
-  Future<void> _pickFile() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
+  Future<void> _handleSelectedFile(File file) async {
+    _ctrl.permitFile.value = file;
+    _ctrl.permitText.value = '';
+    _ctrl.activeAction.value = 'import';
+    // After file picked, show the map section
+    _ctrl.showMapSection.value = true;
+
+    final fileName = file.path.split('/').last;
+    final fileSizeBytes = file.existsSync() ? file.lengthSync() : 0;
+    debugPrint('═══════════════════════════════════════════════════════════════');
+    debugPrint('📎 [Permit File Attached] $fileName');
+    debugPrint('📍 Local Path: ${file.path}');
+    debugPrint('📊 File Size: ${(fileSizeBytes / 1024).toStringAsFixed(1)} KB');
+    debugPrint('ℹ️ [Next Step] Confirm Start & End points on the map, then tap "CONTINUE" to upload to backend OCR.');
+    debugPrint('═══════════════════════════════════════════════════════════════');
+
+    Get.snackbar(
+      'Permit Attached',
+      'Attached $fileName. Set your Start & End points, then tap CONTINUE to process OCR.',
+      backgroundColor: Colors.green,
+      colorText: Colors.white,
+      snackPosition: SnackPosition.TOP,
+      duration: const Duration(seconds: 3),
     );
-    if (result != null && result.files.single.path != null) {
-      final file = File(result.files.single.path!);
-      _ctrl.permitFile.value = file;
-      _ctrl.permitText.value = '';
-      _ctrl.activeAction.value = 'import';
-      // After file picked, show the map section
-      _ctrl.showMapSection.value = true;
+  }
 
-      final fileName = file.path.split('/').last;
-      final fileSizeBytes = file.existsSync() ? file.lengthSync() : 0;
-      debugPrint('═══════════════════════════════════════════════════════════════');
-      debugPrint('📎 [Permit File Attached] $fileName');
-      debugPrint('📍 Local Path: ${file.path}');
-      debugPrint('📊 File Size: ${(fileSizeBytes / 1024).toStringAsFixed(1)} KB');
-      debugPrint('ℹ️ [Next Step] Confirm Start & End points on the map, then tap "CONTINUE" to upload to backend OCR.');
-      debugPrint('═══════════════════════════════════════════════════════════════');
-
-      Get.snackbar(
-        'Permit Attached',
-        'Attached $fileName. Set your Start & End points, then tap CONTINUE to process OCR.',
-        backgroundColor: Colors.green,
-        colorText: Colors.white,
-        snackPosition: SnackPosition.TOP,
-        duration: const Duration(seconds: 3),
+  Future<void> _pickFile() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
       );
+      if (result != null && result.files.single.path != null) {
+        await _handleSelectedFile(File(result.files.single.path!));
+      }
+    } catch (e) {
+      debugPrint('File picker error: $e');
     }
+  }
+
+  Future<void> _pickFromCloud() async {
+    try {
+      // Allows browsing cloud services (Google Drive, iCloud Drive, etc.)
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.any,
+      );
+      if (result != null && result.files.single.path != null) {
+        await _handleSelectedFile(File(result.files.single.path!));
+      }
+    } catch (e) {
+      debugPrint('Cloud picker error: $e');
+    }
+  }
+
+  Future<void> _pickFromPhotos() async {
+    try {
+      final picker = ImagePicker();
+      final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+      if (image != null) {
+        await _handleSelectedFile(File(image.path));
+      }
+    } catch (e) {
+      debugPrint('Photo picker error: $e');
+    }
+  }
+
+  Future<void> _pickFromCamera() async {
+    try {
+      final picker = ImagePicker();
+      final XFile? photo = await picker.pickImage(source: ImageSource.camera);
+      if (photo != null) {
+        await _handleSelectedFile(File(photo.path));
+      }
+    } catch (e) {
+      debugPrint('Camera picker error: $e');
+    }
+  }
+
+  void _showImportOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF132238),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(context.r(16))),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: context.w(16),
+              vertical: context.h(16),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: context.w(40),
+                    height: context.h(4),
+                    decoration: BoxDecoration(
+                      color: Colors.white30,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                SizedBox(height: context.h(16)),
+                Text(
+                  'Import Permit Location',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: context.sp(18),
+                    fontFamily: 'Lato',
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: context.h(4)),
+                Text(
+                  'Select where your permit document is stored:',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: context.sp(13),
+                    fontFamily: 'Lato',
+                  ),
+                ),
+                SizedBox(height: context.h(16)),
+                _importOptionTile(
+                  context: ctx,
+                  icon: Icons.folder_open,
+                  iconColor: const Color(0xFFF58842),
+                  title: 'Browse Files',
+                  subtitle: 'PDFs, Documents & Device Storage',
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _ctrl.choiceMode.value = 'import';
+                    _pickFile();
+                  },
+                ),
+                _importOptionTile(
+                  context: ctx,
+                  icon: Icons.photo_library_outlined,
+                  iconColor: const Color(0xFF42A5F5),
+                  title: 'Browse Photos',
+                  subtitle: 'Camera Roll & Photo Gallery',
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _ctrl.choiceMode.value = 'import';
+                    _pickFromPhotos();
+                  },
+                ),
+                _importOptionTile(
+                  context: ctx,
+                  icon: Icons.cloud_outlined,
+                  iconColor: const Color(0xFF66BB6A),
+                  title: 'Google Drive / iCloud Drive',
+                  subtitle: 'Cloud Storage & Shared Drives',
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _ctrl.choiceMode.value = 'import';
+                    _pickFromCloud();
+                  },
+                ),
+                _importOptionTile(
+                  context: ctx,
+                  icon: Icons.camera_alt_outlined,
+                  iconColor: const Color(0xFFFFA726),
+                  title: 'Scan with Camera',
+                  subtitle: 'Take a photo of physical permit paper',
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _ctrl.choiceMode.value = 'import';
+                    _pickFromCamera();
+                  },
+                ),
+                SizedBox(height: context.h(8)),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _importOptionTile({
+    required BuildContext context,
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      margin: EdgeInsets.only(bottom: context.h(8)),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E2D42),
+        borderRadius: BorderRadius.circular(context.r(10)),
+      ),
+      child: ListTile(
+        onTap: onTap,
+        leading: Container(
+          padding: EdgeInsets.all(context.s(8)),
+          decoration: BoxDecoration(
+            color: iconColor.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(context.r(8)),
+          ),
+          child: Icon(icon, color: iconColor, size: context.sp(24)),
+        ),
+        title: Text(
+          title,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: context.sp(15),
+            fontFamily: 'Lato',
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: TextStyle(
+            color: Colors.white60,
+            fontSize: context.sp(12),
+            fontFamily: 'Lato',
+          ),
+        ),
+        trailing: Icon(
+          Icons.chevron_right,
+          color: Colors.white38,
+          size: context.sp(20),
+        ),
+      ),
+    );
   }
 
 

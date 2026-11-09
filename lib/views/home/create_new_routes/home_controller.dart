@@ -347,19 +347,16 @@ class HomeController extends GetxController {
   }
 
   bool get isFormValid {
-    final rName = routeName.value;
     final sLat = startLat.value;
     final sLng = startLng.value;
     final eLat = endLat.value;
     final eLng = endLng.value;
-    final pText = permitText.value;
-    final pFile = permitFile.value;
 
+    // Permit is optional per client request: drivers can place their own waypoints on the map
     return sLat.isNotEmpty &&
         sLng.isNotEmpty &&
         eLat.isNotEmpty &&
-        eLng.isNotEmpty &&
-        (pText.isNotEmpty || pFile != null);
+        eLng.isNotEmpty;
   }
 
   void _saveDraft() {
@@ -464,18 +461,13 @@ class HomeController extends GetxController {
           duration: const Duration(seconds: 1));
       return;
     }
-    if (permitText.value.isEmpty && permitFile.value == null) {
-      errorMsg.value = 'Document is required';
-      Get.snackbar('Error', errorMsg.value,
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-          snackPosition: SnackPosition.TOP,
-          duration: const Duration(seconds: 1));
-      return;
-    }
 
     isCreating.value = true;
     errorMsg.value = '';
+
+    final effectivePermitText = (permitText.value.isEmpty && permitFile.value == null)
+        ? 'Manual route'
+        : permitText.value;
 
     debugPrint('🔘 [HomeController] Submitting Create Route: $name');
     final result = await CreateRouteService.createRoute(
@@ -488,7 +480,7 @@ class HomeController extends GetxController {
           endLocation.value.isEmpty ? 'Unknown End' : endLocation.value,
       endLatitude: endLat.value,
       endLongitude: endLng.value,
-      permitText: permitText.value,
+      permitText: effectivePermitText,
       permitFile: permitFile.value,
     );
 
@@ -582,18 +574,14 @@ class HomeController extends GetxController {
           duration: const Duration(seconds: 1));
       return;
     }
-    if (permitText.value.isEmpty && permitFile.value == null) {
-      errorMsg.value = 'Document is required';
-      Get.snackbar('Error', errorMsg.value,
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-          snackPosition: SnackPosition.TOP,
-          duration: const Duration(seconds: 1));
-      return;
-    }
 
     isCreating.value = true;
     errorMsg.value = '';
+
+    final effectiveSubsequentPermitText =
+        (permitText.value.isEmpty && permitFile.value == null)
+            ? 'Manual route'
+            : permitText.value;
 
     debugPrint('🔘 [HomeController] Submitting Subsequent Permit for Route $subsequentRouteId');
     final result = await CreateRouteService.createSubsequentPermit(
@@ -606,7 +594,7 @@ class HomeController extends GetxController {
           endLocation.value.isEmpty ? 'Unknown End' : endLocation.value,
       endLatitude: endLat.value,
       endLongitude: endLng.value,
-      permitText: permitText.value,
+      permitText: effectiveSubsequentPermitText,
       permitFile: permitFile.value,
     );
 

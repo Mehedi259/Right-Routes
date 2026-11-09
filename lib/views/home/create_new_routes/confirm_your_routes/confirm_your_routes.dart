@@ -100,9 +100,14 @@ class _EditConfirmStartYourRouteState extends State<EditConfirmStartYourRoute> {
                 children: [
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: context.w(15)),
-                    child: _buildHeader(context),
+                    child: Center(child: _buildTitle(context)),
                   ),
-                  SizedBox(height: context.h(14)),
+                  SizedBox(height: context.h(8)),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: context.w(15)),
+                    child: _buildBackButton(context),
+                  ),
+                  SizedBox(height: context.h(10)),
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: context.w(15)),
                     child: Column(
@@ -188,8 +193,10 @@ class _EditConfirmStartYourRouteState extends State<EditConfirmStartYourRoute> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildHeader(context),
-                      SizedBox(height: context.h(14)),
+                      Center(child: _buildTitle(context)),
+                      SizedBox(height: context.h(8)),
+                      _buildBackButton(context),
+                      SizedBox(height: context.h(10)),
                       _sectionLabel(context, 'Route Name'),
                       SizedBox(height: context.h(6)),
                       _buildRouteNameField(context),
@@ -285,23 +292,7 @@ class _EditConfirmStartYourRouteState extends State<EditConfirmStartYourRoute> {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        Align(
-          alignment: Alignment.centerLeft,
-          child: _buildBackButton(context),
-        ),
-        Center(
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: context.w(65)),
-            child: _buildTitle(context),
-          ),
-        ),
-      ],
-    );
-  }
+
 
   Widget _buildTitle(BuildContext context) {
     return FittedBox(
