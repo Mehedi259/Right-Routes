@@ -323,38 +323,16 @@ class _HomescreenState extends State<Homescreen> {
   }
 
   Widget _buildChoiceButtonsRow(BuildContext context, {String selectedMode = ''}) {
-    final bool importActive = selectedMode == '' || selectedMode == 'import';
-    final bool buildActive = selectedMode == '' || selectedMode == 'build';
-    return Row(
-      children: [
-        Expanded(
-          child: _buildChoiceButton(
-            context,
-            svgPath: SvgManager.createRouteImportWhite,
-            iconSize: context.sp(25),
-            label: 'IMPORT PERMIT',
-            isActive: importActive,
-            onTap: () {
-              // Immediately switch out of Build Your Route so text area & NEXT disappear
-              _ctrl.choiceMode.value = 'import';
-              _showImportOptions(context);
-            },
-          ),
-        ),
-        SizedBox(width: context.w(12)),
-        Expanded(
-          child: _buildChoiceButton(
-            context,
-            svgPath: SvgManager.createRoutePencilWhite,
-            iconSize: context.sp(22),
-            label: 'BUILD YOUR ROUTE',
-            isActive: buildActive,
-            onTap: () {
-              _ctrl.choiceMode.value = 'build';
-            },
-          ),
-        ),
-      ],
+    return HomeChoiceButtonsRow(
+      selectedMode: selectedMode,
+      onImportTap: () {
+        // Immediately switch out of Build Your Route so text area & NEXT disappear
+        _ctrl.choiceMode.value = 'import';
+        _showImportOptions(context);
+      },
+      onBuildTap: () {
+        _ctrl.choiceMode.value = 'build';
+      },
     );
   }
 
@@ -367,61 +345,6 @@ class _HomescreenState extends State<Homescreen> {
         _buildChoiceButtonsRow(context),
         SizedBox(height: context.h(20)),
       ],
-    );
-  }
-
-  Widget _buildChoiceButton(
-    BuildContext context, {
-    required String svgPath,
-    required double iconSize,
-    required String label,
-    bool isActive = true,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: context.h(48),
-        padding: EdgeInsets.symmetric(horizontal: context.w(8)),
-        decoration: BoxDecoration(
-          color: isActive
-              ? AppColors.orange
-              : AppColors.orange.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(context.r(10)),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            SvgPicture.asset(
-              svgPath,
-              width: iconSize,
-              height: iconSize,
-              colorFilter: const ColorFilter.mode(
-                Colors.white,
-                BlendMode.srcIn,
-              ),
-            ),
-            SizedBox(width: context.w(6)),
-            Flexible(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  label.toUpperCase(),
-                  maxLines: 1,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: context.sp(24),
-                    fontFamily: 'League Gothic',
-                    fontWeight: FontWeight.w400,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -882,5 +805,204 @@ class _HomescreenState extends State<Homescreen> {
       ),
     );
   }
+}
 
+/// Renders the two Create Route mode buttons ("IMPORT PERMIT" and
+/// "BUILD YOUR ROUTE") with a unified font size so both labels match
+/// visually across screen widths without independent FittedBox shrinking.
+class HomeChoiceButtonsRow extends StatelessWidget {
+  final String selectedMode;
+  final VoidCallback onImportTap;
+  final VoidCallback onBuildTap;
+
+  const HomeChoiceButtonsRow({
+    super.key,
+    required this.selectedMode,
+    required this.onImportTap,
+    required this.onBuildTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bool importActive = selectedMode == '' || selectedMode == 'import';
+    final bool buildActive = selectedMode == '' || selectedMode == 'build';
+    final double buttonGap = context.w(12);
+    final double horizontalPadding = context.w(7);
+    final double iconGap = context.w(5);
+    final double baseImportIconSize = context.sp(21);
+    final double basePencilIconSize = context.sp(21);
+    final double desiredFontSize = context.sp(23);
+    const double letterSpacing = 0.9;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double singleButtonWidth =
+            ((constraints.maxWidth - buttonGap) / 2).clamp(1.0, double.infinity);
+
+        final double sharedFontSize = _computeSharedFontSize(
+          context,
+          buttonWidth: singleButtonWidth,
+          horizontalPadding: horizontalPadding,
+          iconGap: iconGap,
+          desiredFontSize: desiredFontSize,
+          letterSpacing: letterSpacing,
+          items: [
+            (label: 'IMPORT PERMIT', iconSize: baseImportIconSize),
+            (label: 'BUILD YOUR ROUTE', iconSize: basePencilIconSize),
+          ],
+        );
+
+        final double iconScale =
+            desiredFontSize > 0 ? (sharedFontSize / desiredFontSize).clamp(0.7, 1.0) : 1.0;
+
+        return Row(
+          children: [
+            Expanded(
+              child: _buildButton(
+                context,
+                svgPath: SvgManager.createRouteImportWhite,
+                iconSize: baseImportIconSize * iconScale,
+                horizontalPadding: horizontalPadding,
+                iconGap: iconGap,
+                fontSize: sharedFontSize,
+                letterSpacing: letterSpacing,
+                label: 'IMPORT PERMIT',
+                isActive: importActive,
+                onTap: onImportTap,
+              ),
+            ),
+            SizedBox(width: buttonGap),
+            Expanded(
+              child: _buildButton(
+                context,
+                svgPath: SvgManager.createRoutePencilWhite,
+                iconSize: basePencilIconSize * iconScale,
+                horizontalPadding: horizontalPadding,
+                iconGap: iconGap,
+                fontSize: sharedFontSize,
+                letterSpacing: letterSpacing,
+                label: 'BUILD YOUR ROUTE',
+                isActive: buildActive,
+                onTap: onBuildTap,
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  double _computeSharedFontSize(
+    BuildContext context, {
+    required double buttonWidth,
+    required double horizontalPadding,
+    required double iconGap,
+    required double desiredFontSize,
+    required double letterSpacing,
+    required List<({String label, double iconSize})> items,
+  }) {
+    final TextScaler textScaler = MediaQuery.textScalerOf(context);
+    final double minFontSize = context.sp(10);
+    if (desiredFontSize <= minFontSize) return desiredFontSize;
+
+    bool fitsAll(double fontSize) {
+      final double scale = fontSize / desiredFontSize;
+      for (final item in items) {
+        final double scaledIcon = item.iconSize * scale.clamp(0.7, 1.0);
+        final double maxTextWidth =
+            (buttonWidth - (horizontalPadding * 2) - scaledIcon - iconGap)
+                .clamp(0.0, double.infinity);
+        final TextPainter painter = TextPainter(
+          text: TextSpan(
+            text: item.label.toUpperCase(),
+            style: TextStyle(
+              fontSize: fontSize,
+              fontFamily: 'League Gothic',
+              fontWeight: FontWeight.w400,
+              letterSpacing: letterSpacing,
+            ),
+          ),
+          maxLines: 1,
+          textDirection: TextDirection.ltr,
+          textScaler: textScaler,
+        )..layout();
+        if (painter.width > maxTextWidth) return false;
+      }
+      return true;
+    }
+
+    if (fitsAll(desiredFontSize)) return desiredFontSize;
+
+    double low = minFontSize;
+    double high = desiredFontSize;
+    for (int i = 0; i < 10; i++) {
+      final double mid = (low + high) / 2;
+      if (fitsAll(mid)) {
+        low = mid;
+      } else {
+        high = mid;
+      }
+    }
+    return low;
+  }
+
+  Widget _buildButton(
+    BuildContext context, {
+    required String svgPath,
+    required double iconSize,
+    required double horizontalPadding,
+    required double iconGap,
+    required double fontSize,
+    required double letterSpacing,
+    required String label,
+    required bool isActive,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: context.h(48),
+        padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+        decoration: BoxDecoration(
+          color: isActive
+              ? AppColors.orange
+              : AppColors.orange.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(context.r(10)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            SvgPicture.asset(
+              svgPath,
+              width: iconSize,
+              height: iconSize,
+              colorFilter: const ColorFilter.mode(
+                Colors.white,
+                BlendMode.srcIn,
+              ),
+            ),
+            SizedBox(width: iconGap),
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  label.toUpperCase(),
+                  maxLines: 1,
+                  softWrap: false,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: fontSize,
+                    fontFamily: 'League Gothic',
+                    fontWeight: FontWeight.w400,
+                    letterSpacing: letterSpacing,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
