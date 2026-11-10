@@ -139,7 +139,7 @@ class ChangeEmail extends StatelessWidget {
         SizedBox(height: context.h(15)),
 
         Text(
-          'Current Right Route account email:',
+          'Current RightRoute account email:',
           style: TextStyle(
             color: Colors.white,
             fontSize: context.sp(20),

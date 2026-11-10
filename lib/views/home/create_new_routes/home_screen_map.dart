@@ -15,6 +15,7 @@ import 'package:right_routes/core/constants/services/api_logger_interceptor.dart
 import 'package:right_routes/core/constants/api_config/map_config.dart';
 import 'package:right_routes/views/home/create_new_routes/home_controller.dart';
 import 'package:right_routes/utils/map_icon_util.dart';
+import 'package:right_routes/global_widgets/map_compass_widget.dart';
 
 class HomeScreenMap extends StatefulWidget {
   final bool isFullScreen;
@@ -35,9 +36,12 @@ class _HomeScreenMapState extends State<HomeScreenMap> with WidgetsBindingObserv
   int _pickingState = 0; // 0=Start, 1=End, 2=Done
   bool _isLocationDisabled = false;
   bool _isUpdatingFromMap = false;
+  double _mapBearing = 0.0;
 
   Timer? _debounceEndGeocode;
-  
+  Worker? _startLatWorker;
+  Worker? _endLatWorker;
+
   LatLng? _initialPosition;
   bool _isLoadingInitialLocation = true;
 
@@ -45,7 +49,12 @@ class _HomeScreenMapState extends State<HomeScreenMap> with WidgetsBindingObserv
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _pickingState = _ctrl.endLat.value.isNotEmpty
+        ? 2
+        : (_ctrl.startLat.value.isNotEmpty ? 1 : 0);
     _ctrl.endPointController.addListener(_onEndPointChanged);
+    _startLatWorker = ever(_ctrl.startLat, (_) => _updatePickingState());
+    _endLatWorker = ever(_ctrl.endLat, (_) => _updatePickingState());
     _determineInitialLocation();
   }
 
@@ -166,6 +175,8 @@ class _HomeScreenMapState extends State<HomeScreenMap> with WidgetsBindingObserv
 
   @override
   void dispose() {
+    _startLatWorker?.dispose();
+    _endLatWorker?.dispose();
     _ctrl.endPointController.removeListener(_onEndPointChanged);
     _debounceEndGeocode?.cancel();
     WidgetsBinding.instance.removeObserver(this);
@@ -308,6 +319,11 @@ class _HomeScreenMapState extends State<HomeScreenMap> with WidgetsBindingObserv
             onCameraMove: (CameraPosition position) {
               _ctrl.lastMapCenter = position.target;
               _ctrl.lastMapZoom = position.zoom;
+              if ((_mapBearing - position.bearing).abs() > 0.5 && mounted) {
+                setState(() {
+                  _mapBearing = position.bearing;
+                });
+              }
             },
             onMapCreated: (controller) {
               mapController = controller;
@@ -385,6 +401,28 @@ class _HomeScreenMapState extends State<HomeScreenMap> with WidgetsBindingObserv
                 ),
               ),
             ),
+          Positioned(
+            top: 10.h,
+            left: 10.w,
+            child: MapCompassWidget(
+              bearingDegrees: _mapBearing,
+              onTap: () {
+                final cam = mapController?.cameraPosition;
+                if (mapController != null && cam != null) {
+                  mapController!.animateCamera(
+                    CameraUpdate.newCameraPosition(
+                      CameraPosition(
+                        target: cam.target,
+                        zoom: cam.zoom,
+                        tilt: cam.tilt,
+                        bearing: 0.0,
+                      ),
+                    ),
+                  );
+                }
+              },
+            ),
+          ),
           Positioned(
             top: 10.h,
             right: 10.w,

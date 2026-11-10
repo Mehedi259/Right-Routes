@@ -150,7 +150,7 @@ class AccountDelete extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Your Right Route account has been deleted',
+          'Your RightRoute account has been deleted',
           style: TextStyle(
             color: Colors.white,
             fontSize: context.sp(28),

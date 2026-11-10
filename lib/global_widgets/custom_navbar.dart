@@ -8,6 +8,7 @@ import 'package:right_routes/core/constants/services/auth_service.dart';
 import 'package:right_routes/core/routes/all_routes.dart';
 import 'package:right_routes/utils/colors.dart';
 import 'package:right_routes/utils/responsive_ext.dart';
+import 'package:right_routes/views/home/create_new_routes/home_controller.dart';
 
 class CustomNavbar extends StatefulWidget {
   const CustomNavbar({super.key});
@@ -154,6 +155,9 @@ class _CustomNavbarState extends State<CustomNavbar> {
         }
 
         if (Get.currentRoute == route) return;
+        if (route == AppRoutes.homeScreen && Get.isRegistered<HomeController>()) {
+          Get.find<HomeController>().resetNewRouteData();
+        }
         controller.changeTab(index);
         Future.delayed(Duration.zero, () {
           Get.offAllNamed(route);

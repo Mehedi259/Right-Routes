@@ -29,7 +29,10 @@ class SingleSubscriberManageAccountController extends GetxController {
     userPassword.value = await AuthService.getUserPassword() ?? "";
   }
 
-  void togglePassword() {
+  Future<void> togglePassword() async {
+    if (!showPassword.value && userPassword.value.isEmpty) {
+      userPassword.value = await AuthService.getUserPassword() ?? "";
+    }
     showPassword.value = !showPassword.value;
   }
 }
@@ -281,16 +284,20 @@ class SingleSubscriberScreen extends StatelessWidget {
             ),
             SizedBox(width: context.w(7)),
             Obx(() => GestureDetector(
-                  onTap: c.togglePassword,
-                  child: SvgPicture.asset(
-                    c.showPassword.value
-                        ? SvgManager.eyeSlashBigPupil
-                        : SvgManager.eyeBigPupil,
-                    width: context.w(24),
-                    height: context.h(24),
-                    colorFilter: const ColorFilter.mode(
-                      AppColors.white,
-                      BlendMode.srcIn,
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => c.togglePassword(),
+                  child: Padding(
+                    padding: EdgeInsets.all(context.w(6)),
+                    child: SvgPicture.asset(
+                      c.showPassword.value
+                          ? SvgManager.eyeSlashBigPupil
+                          : SvgManager.eyeBigPupil,
+                      width: context.w(24),
+                      height: context.h(24),
+                      colorFilter: const ColorFilter.mode(
+                        AppColors.white,
+                        BlendMode.srcIn,
+                      ),
                     ),
                   ),
                 )),

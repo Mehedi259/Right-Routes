@@ -64,6 +64,7 @@ class ConfirmRouteController extends GetxController {
   final RxInt selectedPermitIndex = (-1).obs;
   final RxInt selectedWaypointIndex = (-1).obs;
   final RxBool isDragging = false.obs;
+  final RxDouble cameraBearing = 0.0.obs;
 
   // ─────────────────────────────────────────────────────────────
   // PUBLIC NON-REACTIVE  (set once, read by view)
@@ -509,6 +510,25 @@ class ConfirmRouteController extends GetxController {
   void onCameraMove(CameraPosition position) {
     _mapCenter = position.target;
     _mapZoom = position.zoom;
+    if ((cameraBearing.value - position.bearing).abs() > 0.5) {
+      cameraBearing.value = position.bearing;
+    }
+  }
+
+  void resetCompassBearing() {
+    final cam = mapController?.cameraPosition;
+    if (mapController == null || cam == null) return;
+    mapController!.animateCamera(
+      CameraUpdate.newCameraPosition(
+        CameraPosition(
+          target: cam.target,
+          zoom: cam.zoom,
+          tilt: cam.tilt,
+          bearing: 0.0,
+        ),
+      ),
+    );
+    cameraBearing.value = 0.0;
   }
 
   Future<void> onStyleLoaded() async {

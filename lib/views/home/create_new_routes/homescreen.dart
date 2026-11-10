@@ -13,7 +13,6 @@ import 'home_screen_map.dart';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 class Homescreen extends StatefulWidget {
   const Homescreen({super.key});
@@ -24,7 +23,6 @@ class Homescreen extends StatefulWidget {
 
 class _HomescreenState extends State<Homescreen> {
   late final HomeController _ctrl;
-  final stt.SpeechToText _speech = stt.SpeechToText();
 
   @override
   void initState() {
@@ -258,122 +256,152 @@ class _HomescreenState extends State<Homescreen> {
   // ─────────────────────────────────────────────────────────────
   // SECTION 1: "Choose one" with Import Permit + Build Your Route
   // ─────────────────────────────────────────────────────────────
-  Widget _buildChooseSection(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildChooseHeaderRow(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
+            Text(
+              'Choose one:',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: context.sp(17),
+                fontFamily: 'Lato',
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            SizedBox(width: context.w(6)),
+            GestureDetector(
+              onTap: () => showPermitDialog(context),
+              child: SvgPicture.asset(
+                'assets/icons/Question-Box-gray.svg',
+                width: context.w(22),
+                height: context.h(22),
+              ),
+            ),
+          ],
+        ),
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () {
+            _ctrl.permitText.value = '';
+            _ctrl.permitFile.value = null;
+            _ctrl.activeAction.value = 'skip';
+            _ctrl.showMapSection.value = true;
+          },
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: context.w(4),
+              vertical: context.h(4),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Choose one:',
+                  'Skip',
                   style: TextStyle(
-                    color: Colors.white,
-                    fontSize: context.sp(17),
+                    color: const Color(0xFFF58842),
+                    fontSize: context.sp(16),
                     fontFamily: 'Lato',
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                SizedBox(width: context.w(6)),
-                GestureDetector(
-                  onTap: () => showPermitDialog(context),
-                  child: SvgPicture.asset(
-                    'assets/icons/Question-Box-gray.svg',
-                    width: context.w(22),
-                    height: context.h(22),
-                  ),
+                SizedBox(width: context.w(2)),
+                Icon(
+                  Icons.chevron_right,
+                  color: const Color(0xFFF58842),
+                  size: context.sp(18),
                 ),
               ],
             ),
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () {
-                _ctrl.permitText.value = '';
-                _ctrl.permitFile.value = null;
-                _ctrl.activeAction.value = 'skip';
-                _ctrl.showMapSection.value = true;
-              },
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: context.w(4), vertical: context.h(4)),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Skip',
-                      style: TextStyle(
-                        color: const Color(0xFFF58842),
-                        fontSize: context.sp(16),
-                        fontFamily: 'Lato',
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    SizedBox(width: context.w(2)),
-                    Icon(
-                      Icons.chevron_right,
-                      color: const Color(0xFFF58842),
-                      size: context.sp(18),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
-        SizedBox(height: context.h(14)),
-        Row(
-          children: [
-            // Import Permit button
-            Expanded(
-              child: _buildChoiceButton(
-                context,
-                icon: Icons.file_download_outlined,
-                label: 'IMPORT PERMIT',
-                onTap: () {
-                  _showImportOptions(context);
-                },
-              ),
-            ),
-            SizedBox(width: context.w(12)),
-            // Build Your Route button
-            Expanded(
-              child: _buildChoiceButton(
-                context,
-                icon: Icons.edit_outlined,
-                label: 'BUILD YOUR ROUTE',
-                onTap: () {
-                  _ctrl.choiceMode.value = 'build';
-                },
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: context.h(20)),
-        // Map shown behind (dark background placeholder)
       ],
     );
   }
 
-  Widget _buildChoiceButton(BuildContext context,
-      {required IconData icon,
-      required String label,
-      required VoidCallback onTap}) {
+  Widget _buildChoiceButtonsRow(BuildContext context, {String selectedMode = ''}) {
+    final bool importActive = selectedMode == '' || selectedMode == 'import';
+    final bool buildActive = selectedMode == '' || selectedMode == 'build';
+    return Row(
+      children: [
+        Expanded(
+          child: _buildChoiceButton(
+            context,
+            svgPath: SvgManager.createRouteImportWhite,
+            iconSize: context.sp(25),
+            label: 'IMPORT PERMIT',
+            isActive: importActive,
+            onTap: () {
+              // Immediately switch out of Build Your Route so text area & NEXT disappear
+              _ctrl.choiceMode.value = 'import';
+              _showImportOptions(context);
+            },
+          ),
+        ),
+        SizedBox(width: context.w(12)),
+        Expanded(
+          child: _buildChoiceButton(
+            context,
+            svgPath: SvgManager.createRoutePencilWhite,
+            iconSize: context.sp(22),
+            label: 'BUILD YOUR ROUTE',
+            isActive: buildActive,
+            onTap: () {
+              _ctrl.choiceMode.value = 'build';
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildChooseSection(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildChooseHeaderRow(context),
+        SizedBox(height: context.h(14)),
+        _buildChoiceButtonsRow(context),
+        SizedBox(height: context.h(20)),
+      ],
+    );
+  }
+
+  Widget _buildChoiceButton(
+    BuildContext context, {
+    required String svgPath,
+    required double iconSize,
+    required String label,
+    bool isActive = true,
+    required VoidCallback onTap,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
         height: context.h(48),
         padding: EdgeInsets.symmetric(horizontal: context.w(8)),
         decoration: BoxDecoration(
-          color: AppColors.orange,
+          color: isActive
+              ? AppColors.orange
+              : AppColors.orange.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(context.r(10)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Icon(icon, color: Colors.white, size: context.sp(20)),
+            SvgPicture.asset(
+              svgPath,
+              width: iconSize,
+              height: iconSize,
+              colorFilter: const ColorFilter.mode(
+                Colors.white,
+                BlendMode.srcIn,
+              ),
+            ),
             SizedBox(width: context.w(6)),
             Flexible(
               child: FittedBox(
@@ -383,10 +411,10 @@ class _HomescreenState extends State<Homescreen> {
                   maxLines: 1,
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: context.sp(20),
+                    fontSize: context.sp(24),
                     fontFamily: 'League Gothic',
                     fontWeight: FontWeight.w400,
-                    letterSpacing: 1.5,
+                    letterSpacing: 1.2,
                   ),
                 ),
               ),
@@ -396,7 +424,6 @@ class _HomescreenState extends State<Homescreen> {
       ),
     );
   }
-
 
   // ─────────────────────────────────────────────────────────────
   // SECTION: Import Permit (file picker)
@@ -405,135 +432,10 @@ class _HomescreenState extends State<Homescreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                Text(
-                  'Choose one:',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: context.sp(17),
-                    fontFamily: 'Lato',
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                SizedBox(width: context.w(6)),
-                GestureDetector(
-                  onTap: () => showPermitDialog(context),
-                  child: SvgPicture.asset(
-                    'assets/icons/Question-Box-gray.svg',
-                    width: context.w(22),
-                    height: context.h(22),
-                  ),
-                ),
-              ],
-            ),
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () {
-                _ctrl.permitText.value = '';
-                _ctrl.permitFile.value = null;
-                _ctrl.activeAction.value = 'skip';
-                _ctrl.showMapSection.value = true;
-              },
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: context.w(4), vertical: context.h(4)),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Skip',
-                      style: TextStyle(
-                        color: const Color(0xFFF58842),
-                        fontSize: context.sp(16),
-                        fontFamily: 'Lato',
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    SizedBox(width: context.w(2)),
-                    Icon(
-                      Icons.chevron_right,
-                      color: const Color(0xFFF58842),
-                      size: context.sp(18),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
+        _buildChooseHeaderRow(context),
         SizedBox(height: context.h(14)),
-        Row(
-          children: [
-            Expanded(
-              child: _buildChoiceButtonActive(
-                context,
-                icon: Icons.file_download_outlined,
-                label: 'IMPORT\nPERMIT',
-                isActive: true,
-                onTap: () => _showImportOptions(context),
-              ),
-            ),
-            SizedBox(width: context.w(12)),
-            Expanded(
-              child: _buildChoiceButtonActive(
-                context,
-                icon: Icons.edit_outlined,
-                label: 'BUILD YOUR\nROUTE',
-                isActive: false,
-                onTap: () => _ctrl.choiceMode.value = 'build',
-              ),
-            ),
-          ],
-        ),
-        // Map placeholder removed
+        _buildChoiceButtonsRow(context, selectedMode: 'import'),
       ],
-    );
-  }
-
-  Widget _buildChoiceButtonActive(BuildContext context,
-      {required IconData icon,
-      required String label,
-      required bool isActive,
-      VoidCallback? onTap}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: context.h(50),
-        padding: EdgeInsets.symmetric(horizontal: context.w(6)),
-        decoration: BoxDecoration(
-          color: isActive ? AppColors.orange : AppColors.orange.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(context.r(10)),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Icon(icon, color: Colors.white, size: context.sp(20)),
-            SizedBox(width: context.w(6)),
-            Flexible(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  label.toUpperCase(),
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: context.sp(18),
-                    fontFamily: 'League Gothic',
-                    fontWeight: FontWeight.w400,
-                    letterSpacing: 1.2,
-                    height: 1.05,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -544,89 +446,9 @@ class _HomescreenState extends State<Homescreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                Text(
-                  'Choose one:',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: context.sp(17),
-                    fontFamily: 'Lato',
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                SizedBox(width: context.w(6)),
-                GestureDetector(
-                  onTap: () => showPermitDialog(context),
-                  child: SvgPicture.asset(
-                    'assets/icons/Question-Box-gray.svg',
-                    width: context.w(22),
-                    height: context.h(22),
-                  ),
-                ),
-              ],
-            ),
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () {
-                _ctrl.permitText.value = '';
-                _ctrl.permitFile.value = null;
-                _ctrl.activeAction.value = 'skip';
-                _ctrl.showMapSection.value = true;
-              },
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: context.w(4), vertical: context.h(4)),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Skip',
-                      style: TextStyle(
-                        color: const Color(0xFFF58842),
-                        fontSize: context.sp(16),
-                        fontFamily: 'Lato',
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    SizedBox(width: context.w(2)),
-                    Icon(
-                      Icons.chevron_right,
-                      color: const Color(0xFFF58842),
-                      size: context.sp(18),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
+        _buildChooseHeaderRow(context),
         SizedBox(height: context.h(14)),
-        Row(
-          children: [
-            Expanded(
-              child: _buildChoiceButtonActive(
-                context,
-                icon: Icons.file_download_outlined,
-                label: 'IMPORT\nPERMIT',
-                isActive: false,
-                onTap: () => _showImportOptions(context),
-              ),
-            ),
-            SizedBox(width: context.w(12)),
-            Expanded(
-              child: _buildChoiceButtonActive(
-                context,
-                icon: Icons.edit_outlined,
-                label: 'BUILD YOUR\nROUTE',
-                isActive: true,
-              ),
-            ),
-          ],
-        ),
+        _buildChoiceButtonsRow(context, selectedMode: 'build'),
         SizedBox(height: context.h(16)),
 
         // Directions text area
@@ -663,7 +485,7 @@ class _HomescreenState extends State<Homescreen> {
         ),
         SizedBox(height: context.h(16)),
 
-        // NEXT button
+        // NEXT button (+1 pt font size)
         Center(
           child: Obx(() {
             final hasText = _ctrl.buildRouteText.value.trim().isNotEmpty;
@@ -671,7 +493,7 @@ class _HomescreenState extends State<Homescreen> {
               text: 'NEXT',
               width: context.w(150),
               height: context.h(44),
-              fontSize: context.sp(20),
+              fontSize: context.sp(21),
               backgroundColor: hasText ? AppColors.orange : AppColors.medGray,
               borderRadius: 10,
               onPressed: hasText
@@ -762,27 +584,34 @@ class _HomescreenState extends State<Homescreen> {
       child: Row(
         children: [
           Expanded(
-            child: TextField(
-              controller: _ctrl.endPointController,
-              decoration: InputDecoration(
-                hintText: 'Type Starting point or move pin on map',
-                hintStyle: TextStyle(
-                  color: Colors.grey.shade400,
-                  fontSize: context.sp(13),
+            child: Obx(() {
+              final bool pickingEnd =
+                  _ctrl.currentPermitIndex.value > 1 ||
+                  _ctrl.startLat.value.isNotEmpty;
+              return TextField(
+                controller: _ctrl.endPointController,
+                decoration: InputDecoration(
+                  hintText: pickingEnd
+                      ? 'Type End point or move pin on map'
+                      : 'Type Starting point or move pin on map',
+                  hintStyle: TextStyle(
+                    color: Colors.grey.shade400,
+                    fontSize: context.sp(13),
+                  ),
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: context.w(12),
+                    vertical: 0,
+                  ),
+                  isDense: true,
                 ),
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: context.w(12),
-                  vertical: 0,
+                style: TextStyle(
+                  fontSize: context.sp(14),
+                  fontFamily: 'Lato',
+                  color: Colors.black,
                 ),
-                isDense: true,
-              ),
-              style: TextStyle(
-                fontSize: context.sp(14),
-                fontFamily: 'Lato',
-                color: Colors.black,
-              ),
-            ),
+              );
+            }),
           ),
         ],
       ),
@@ -901,11 +730,12 @@ class _HomescreenState extends State<Homescreen> {
   void _showImportOptions(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF132238),
+      backgroundColor: const Color(0xFF333333),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(context.r(16))),
       ),
       builder: (ctx) {
+        const brandOrange = Color(0xFFF58842);
         return SafeArea(
           child: Padding(
             padding: EdgeInsets.symmetric(
@@ -921,7 +751,7 @@ class _HomescreenState extends State<Homescreen> {
                     width: context.w(40),
                     height: context.h(4),
                     decoration: BoxDecoration(
-                      color: Colors.white30,
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -940,7 +770,7 @@ class _HomescreenState extends State<Homescreen> {
                 Text(
                   'Select where your permit document is stored:',
                   style: TextStyle(
-                    color: Colors.white70,
+                    color: Colors.white,
                     fontSize: context.sp(13),
                     fontFamily: 'Lato',
                   ),
@@ -949,7 +779,7 @@ class _HomescreenState extends State<Homescreen> {
                 _importOptionTile(
                   context: ctx,
                   icon: Icons.folder_open,
-                  iconColor: const Color(0xFFF58842),
+                  iconColor: brandOrange,
                   title: 'Browse Files',
                   subtitle: 'PDFs, Documents & Device Storage',
                   onTap: () {
@@ -961,7 +791,7 @@ class _HomescreenState extends State<Homescreen> {
                 _importOptionTile(
                   context: ctx,
                   icon: Icons.photo_library_outlined,
-                  iconColor: const Color(0xFF42A5F5),
+                  iconColor: brandOrange,
                   title: 'Browse Photos',
                   subtitle: 'Camera Roll & Photo Gallery',
                   onTap: () {
@@ -973,7 +803,7 @@ class _HomescreenState extends State<Homescreen> {
                 _importOptionTile(
                   context: ctx,
                   icon: Icons.cloud_outlined,
-                  iconColor: const Color(0xFF66BB6A),
+                  iconColor: brandOrange,
                   title: 'Google Drive / iCloud Drive',
                   subtitle: 'Cloud Storage & Shared Drives',
                   onTap: () {
@@ -985,7 +815,7 @@ class _HomescreenState extends State<Homescreen> {
                 _importOptionTile(
                   context: ctx,
                   icon: Icons.camera_alt_outlined,
-                  iconColor: const Color(0xFFFFA726),
+                  iconColor: brandOrange,
                   title: 'Scan with Camera',
                   subtitle: 'Take a photo of physical permit paper',
                   onTap: () {
@@ -1014,7 +844,7 @@ class _HomescreenState extends State<Homescreen> {
     return Container(
       margin: EdgeInsets.only(bottom: context.h(8)),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E2D42),
+        color: const Color(0xFF606060),
         borderRadius: BorderRadius.circular(context.r(10)),
       ),
       child: ListTile(
@@ -1039,126 +869,18 @@ class _HomescreenState extends State<Homescreen> {
         subtitle: Text(
           subtitle,
           style: TextStyle(
-            color: Colors.white60,
+            color: Colors.white,
             fontSize: context.sp(12),
             fontFamily: 'Lato',
           ),
         ),
         trailing: Icon(
           Icons.chevron_right,
-          color: Colors.white38,
+          color: Colors.white70,
           size: context.sp(20),
         ),
       ),
     );
-  }
-
-
-
-  void _showMicDialog(BuildContext context,
-      {required String title, required Function(String) onDone}) {
-    RxBool isListening = false.obs;
-    RxString spokenText = ''.obs;
-
-    Get.dialog(AlertDialog(
-      backgroundColor: AppColors.darkGray,
-      title: Text(title, style: const TextStyle(color: Colors.white)),
-      content: Obx(() => Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                  spokenText.value.isEmpty
-                      ? 'Tap mic and speak...'
-                      : spokenText.value,
-                  style: const TextStyle(color: Colors.white)),
-              const SizedBox(height: 20),
-              GestureDetector(
-                onTap: () async {
-                  if (!isListening.value) {
-                    bool available = false;
-                    try {
-                      available = await _speech.initialize(
-                        onStatus: (status) {
-                          if (status == 'done' || status == 'notListening') {
-                            isListening.value = false;
-                          }
-                        },
-                        onError: (errorNotification) {
-                          isListening.value = false;
-                          if (errorNotification.errorMsg != 'error_no_match') {
-                            Get.snackbar(
-                                'Speech Error', errorNotification.errorMsg,
-                                backgroundColor: Colors.orange,
-                                colorText: Colors.white,
-                                duration: const Duration(seconds: 2));
-                          }
-                        },
-                      );
-                    } catch (e) {
-                      debugPrint('Speech initialization error: $e');
-                      Get.snackbar('Not Supported',
-                          'Speech recognition is not available on this device.',
-                          backgroundColor: Colors.red,
-                          colorText: Colors.white,
-                          duration: const Duration(seconds: 2));
-                      return;
-                    }
-
-                    if (available) {
-                      isListening.value = true;
-                      String baseText = spokenText.value;
-                      if (baseText.isNotEmpty && !baseText.endsWith(' ')) {
-                        baseText += ' ';
-                      }
-                      await Future.delayed(const Duration(milliseconds: 200));
-                      _speech.listen(
-                        onResult: (val) {
-                          spokenText.value = baseText + val.recognizedWords;
-                        },
-                        listenFor: const Duration(seconds: 30),
-                        pauseFor: const Duration(seconds: 3),
-                      );
-                    } else {
-                      Get.snackbar('Error', 'Microphone permission denied',
-                          backgroundColor: Colors.red,
-                          colorText: Colors.white,
-                          duration: const Duration(seconds: 1));
-                    }
-                  } else {
-                    isListening.value = false;
-                    _speech.stop();
-                  }
-                },
-                child: CircleAvatar(
-                  radius: 30,
-                  backgroundColor:
-                      isListening.value ? Colors.red : AppColors.orange,
-                  child: Icon(
-                      isListening.value ? Icons.mic : Icons.mic_none,
-                      color: Colors.white,
-                      size: 30),
-                ),
-              )
-            ],
-          )),
-      actions: [
-        TextButton(
-            onPressed: () {
-              _speech.stop();
-              Get.back();
-            },
-            child:
-                const Text('Cancel', style: TextStyle(color: Colors.white))),
-        TextButton(
-            onPressed: () {
-              _speech.stop();
-              Get.back();
-              onDone(spokenText.value);
-            },
-            child: const Text('Done',
-                style: TextStyle(color: AppColors.orange))),
-      ],
-    ));
   }
 
 }

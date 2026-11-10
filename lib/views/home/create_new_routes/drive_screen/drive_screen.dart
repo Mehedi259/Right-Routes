@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:right_routes/global_widgets/custom_navbar.dart';
+import 'package:right_routes/global_widgets/map_compass_widget.dart';
 import 'package:right_routes/utils/responsive_ext.dart';
 import 'package:right_routes/core/constants/api_config/map_config.dart';
 import 'package:right_routes/utils/colors.dart';
@@ -46,10 +47,47 @@ class DriveRouteMap extends StatelessWidget {
               },
               myLocationEnabled: false,
               compassEnabled: false,
+              trackCameraPosition: true,
+              onCameraMove: (pos) {
+                if ((ctrl.cameraBearing.value - pos.bearing).abs() > 0.5) {
+                  ctrl.cameraBearing.value = pos.bearing;
+                }
+              },
               rotateGesturesEnabled: true,
               scrollGesturesEnabled: true,
               tiltGesturesEnabled: true,
               zoomGesturesEnabled: true,
+            ),
+          ),
+
+          // ═══════════════════════════════════════════════════════════
+          // TOP-LEFT COMPASS OVERLAY
+          // ═══════════════════════════════════════════════════════════
+          Positioned(
+            top: context.h(10),
+            left: context.w(12),
+            child: SafeArea(
+              bottom: false,
+              child: Obx(() => MapCompassWidget(
+                    bearingDegrees: ctrl.cameraBearing.value,
+                    onTap: () {
+                      ctrl.userInteractedWithMap();
+                      final cam = ctrl.mapController?.cameraPosition;
+                      if (ctrl.mapController != null && cam != null) {
+                        ctrl.mapController!.animateCamera(
+                          CameraUpdate.newCameraPosition(
+                            CameraPosition(
+                              target: cam.target,
+                              zoom: cam.zoom,
+                              tilt: cam.tilt,
+                              bearing: 0.0,
+                            ),
+                          ),
+                        );
+                        ctrl.cameraBearing.value = 0.0;
+                      }
+                    },
+                  )),
             ),
           ),
 

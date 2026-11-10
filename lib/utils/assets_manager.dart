@@ -36,6 +36,8 @@ class SvgManager {
   static const String micWhite = "$basePath/Mic-white.svg";
   static const String importWhite = "$basePath/Import_white.svg";
   static const String editPencilWhite = "$basePath/Edit-Pencil-white.svg";
+  static const String createRouteImportWhite = "$basePath/create_route_import_white.svg";
+  static const String createRoutePencilWhite = "$basePath/create_route_pencil_white.svg";
   static const String cameraWhite = "$basePath/Camera-white.svg";
   static const String cameraOrange = "$basePath/Camera-orange.svg";
   

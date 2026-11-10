@@ -145,7 +145,7 @@ class EmailSaved extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Your new Right Route email is saved',
+          'Your new RightRoute email is saved',
           style: TextStyle(
             color: Colors.white,
             fontSize: context.sp(28),

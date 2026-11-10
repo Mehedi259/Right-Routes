@@ -153,6 +153,9 @@ class AuthController extends GetxController {
       final result = await _authRepository.createPassword(email, password);
 
       if (result.success) {
+        if (password.isNotEmpty) {
+          await AuthService.saveUserPassword(password);
+        }
         if (result.message != null) _showSuccess(result.message!);
 
         if (result.nextStep == 'VERIFY_OTP') {
@@ -241,6 +244,9 @@ class AuthController extends GetxController {
 
         // Mark device as trusted since login succeeded
         await _deviceStorage.saveTrustedStatus(true);
+        if (password.isNotEmpty) {
+          await AuthService.saveUserPassword(password);
+        }
 
         if (result.message != null) _showSuccess(result.message!);
 

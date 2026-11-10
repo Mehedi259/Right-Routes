@@ -145,7 +145,7 @@ class PasswordSaved extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Your new Right Route password is saved',
+          'Your new RightRoute password is saved',
           style: TextStyle(
             color: Colors.white,
             fontSize: context.sp(28),

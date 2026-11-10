@@ -256,22 +256,22 @@ class CreateRouteService {
           'message': (body is Map ? (body['message'] ?? 'Permit created successfully') : 'Permit created successfully'),
         };
       } else {
-        String msg = 'Failed to create permit';
-        if (body is Map) {
-          if (body['message'] != null) {
-            msg = body['message'].toString();
-          } else if (body['detail'] != null) {
-            msg = body['detail'].toString();
-          }
-        }
         return {
           'success': false,
-          'message': msg,
+          'statusCode': response.statusCode,
+          'message': _parseDioError(body),
         };
       }
     } catch (e) {
       debugPrint('❌ [SubsequentPermit] Error: $e');
-      return {'success': false, 'message': 'Network error'};
+      if (e is DioException) {
+        return {
+          'success': false,
+          'statusCode': e.response?.statusCode,
+          'message': _parseDioError(e.response?.data),
+        };
+      }
+      return {'success': false, 'message': 'Network error. Please try again.'};
     }
   }
 }
@@ -410,6 +410,7 @@ class HomeController extends GetxController {
 
   void resetNewRouteData() {
     routeNameController.clear();
+    endPointController.clear();
     startLocation.value = '';
     startLat.value = '';
     startLng.value = '';
@@ -418,15 +419,23 @@ class HomeController extends GetxController {
     endLng.value = '';
     permitText.value = '';
     permitFile.value = null;
+    activeAction.value = '';
     errorMsg.value = '';
     isCreating.value = false;
     choiceMode.value = '';
     buildRouteTextController.clear();
     buildRouteText.value = '';
     showMapSection.value = false;
+    isMapFullScreen.value = false;
+    subsequentRouteId = null;
+    currentPermitIndex.value = 1;
+    lastMapCenter = null;
+    lastMapZoom = 14.0;
   }
 
   Future<void> submitCreateRoute() async {
+    if (isCreating.value) return;
+
     String name = routeNameController.text.trim();
     if (name.isEmpty) {
       int count = 0;
@@ -469,22 +478,25 @@ class HomeController extends GetxController {
         ? 'Manual route'
         : permitText.value;
 
-    debugPrint('🔘 [HomeController] Submitting Create Route: $name');
-    final result = await CreateRouteService.createRoute(
-      name: name,
-      startLocation:
-          startLocation.value.isEmpty ? 'Unknown Start' : startLocation.value,
-      startLatitude: startLat.value,
-      startLongitude: startLng.value,
-      endLocation:
-          endLocation.value.isEmpty ? 'Unknown End' : endLocation.value,
-      endLatitude: endLat.value,
-      endLongitude: endLng.value,
-      permitText: effectivePermitText,
-      permitFile: permitFile.value,
-    );
-
-    isCreating.value = false;
+    Map<String, dynamic> result;
+    try {
+      debugPrint('🔘 [HomeController] Submitting Create Route: $name');
+      result = await CreateRouteService.createRoute(
+        name: name,
+        startLocation:
+            startLocation.value.isEmpty ? 'Unknown Start' : startLocation.value,
+        startLatitude: startLat.value,
+        startLongitude: startLng.value,
+        endLocation:
+            endLocation.value.isEmpty ? 'Unknown End' : endLocation.value,
+        endLatitude: endLat.value,
+        endLongitude: endLng.value,
+        permitText: effectivePermitText,
+        permitFile: permitFile.value,
+      );
+    } finally {
+      isCreating.value = false;
+    }
 
     if (result['success'] == true) {
       final sLat = startLat.value;
@@ -493,11 +505,7 @@ class HomeController extends GetxController {
       AuthService.clearDraftRouteData('home');
       // Do not resetNewRouteData here so that tapping < Back from ConfirmYourRoutes
       // returns the user directly to the set S & E points screen with their points intact.
-      Get.snackbar('Success', result['message'] ?? 'Route created successfully',
-          backgroundColor: Colors.green,
-          colorText: Colors.white,
-          snackPosition: SnackPosition.TOP,
-          duration: const Duration(seconds: 1));
+      if (Get.isSnackbarOpen) Get.closeAllSnackbars();
       Get.toNamed(
         AppRoutes.confirmYourRoutes,
         arguments: {
@@ -507,6 +515,11 @@ class HomeController extends GetxController {
           'startLng': sLng,
         },
       );
+      Get.snackbar('Success', result['message'] ?? 'Route created successfully',
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+          snackPosition: SnackPosition.TOP,
+          duration: const Duration(seconds: 1));
     } else {
       String msg = result['message'] ?? 'Failed to create route';
       if (result['statusCode'] != null) {
@@ -561,6 +574,18 @@ class HomeController extends GetxController {
   }
 
   Future<void> submitCreateSubsequentPermit() async {
+    if (isCreating.value) return;
+
+    if (currentPermitIndex.value > 6) {
+      errorMsg.value = 'Maximum of 6 permits reached for a route';
+      Get.snackbar('Limit Reached', errorMsg.value,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+          snackPosition: SnackPosition.TOP,
+          duration: const Duration(seconds: 2));
+      return;
+    }
+
     if (subsequentRouteId == null) {
       errorMsg.value = 'Route ID is missing';
       return;
@@ -583,50 +608,65 @@ class HomeController extends GetxController {
             ? 'Manual route'
             : permitText.value;
 
-    debugPrint('🔘 [HomeController] Submitting Subsequent Permit for Route $subsequentRouteId');
-    final result = await CreateRouteService.createSubsequentPermit(
-      routeId: subsequentRouteId!,
-      startLocation:
-          startLocation.value.isEmpty ? 'Unknown Start' : startLocation.value,
-      startLatitude: startLat.value,
-      startLongitude: startLng.value,
-      endLocation:
-          endLocation.value.isEmpty ? 'Unknown End' : endLocation.value,
-      endLatitude: endLat.value,
-      endLongitude: endLng.value,
-      permitText: effectiveSubsequentPermitText,
-      permitFile: permitFile.value,
-    );
-
-    isCreating.value = false;
+    Map<String, dynamic> result;
+    try {
+      debugPrint('🔘 [HomeController] Submitting Subsequent Permit for Route $subsequentRouteId');
+      result = await CreateRouteService.createSubsequentPermit(
+        routeId: subsequentRouteId!,
+        startLocation:
+            startLocation.value.isEmpty ? 'Unknown Start' : startLocation.value,
+        startLatitude: startLat.value,
+        startLongitude: startLng.value,
+        endLocation:
+            endLocation.value.isEmpty ? 'Unknown End' : endLocation.value,
+        endLatitude: endLat.value,
+        endLongitude: endLng.value,
+        permitText: effectiveSubsequentPermitText,
+        permitFile: permitFile.value,
+      );
+    } finally {
+      isCreating.value = false;
+    }
 
     if (result['success'] == true) {
-      Get.snackbar(
-        'Success',
-        result['message'] ?? 'Permit created successfully',
-        titleText: const Text(
+      if (Get.isSnackbarOpen) {
+        Get.closeAllSnackbars();
+      }
+      // Pop Homescreen via Navigator first so an active snackbar overlay can never intercept Get.back
+      final nav = Get.key.currentState;
+      if (nav != null && nav.canPop()) {
+        nav.pop(true);
+      } else {
+        Get.back(result: true);
+      }
+      final successMsg = result['message'] ?? 'Permit created successfully';
+      Future.delayed(const Duration(milliseconds: 200), () {
+        Get.snackbar(
           'Success',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 21.0,
-            fontWeight: FontWeight.bold,
-            fontFamily: 'Lato',
+          successMsg,
+          titleText: const Text(
+            'Success',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 21.0,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'Lato',
+            ),
           ),
-        ),
-        messageText: Text(
-          result['message'] ?? 'Permit created successfully',
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 19.0,
-            fontFamily: 'Lato',
+          messageText: Text(
+            successMsg,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 19.0,
+              fontFamily: 'Lato',
+            ),
           ),
-        ),
-        backgroundColor: Colors.green,
-        colorText: Colors.white,
-        snackPosition: SnackPosition.TOP,
-        duration: const Duration(seconds: 1),
-      );
-      Get.back(result: true);
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+          snackPosition: SnackPosition.TOP,
+          duration: const Duration(seconds: 1),
+        );
+      });
     } else {
       String msg = result['message'] ?? 'Failed to create permit';
       errorMsg.value = msg;

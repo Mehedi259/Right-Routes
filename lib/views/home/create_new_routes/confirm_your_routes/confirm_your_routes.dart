@@ -15,8 +15,8 @@ import 'package:right_routes/core/constants/api_config/home_api_constant/home_ap
 import 'package:right_routes/views/home/create_new_routes/confirm_your_routes/create_route_after_confirm_route/after_confirm_controller.dart';
 import 'package:right_routes/views/home/create_new_routes/home_controller.dart';
 import 'package:right_routes/global_widgets/custom_info_dialog.dart';
+import 'package:right_routes/global_widgets/map_compass_widget.dart';
 import 'package:right_routes/core/constants/api_config/map_config.dart';
-import 'package:speech_to_text/speech_to_text.dart' as stt;
 import '../drive_screen/drive_screen.dart';
 import '../homescreen.dart';
 
@@ -41,8 +41,6 @@ class EditConfirmStartYourRoute extends StatefulWidget {
 }
 
 class _EditConfirmStartYourRouteState extends State<EditConfirmStartYourRoute> {
-  final stt.SpeechToText _speech = stt.SpeechToText();
-
   final ConfirmRouteController controller = Get.put(ConfirmRouteController());
   final HomeController homeCtrl = Get.isRegistered<HomeController>()
       ? Get.find<HomeController>()
@@ -379,7 +377,7 @@ class _EditConfirmStartYourRouteState extends State<EditConfirmStartYourRoute> {
   Widget _buildAddPermitButton(BuildContext context) {
     return Obx(() {
       final permitCount = controller.editablePermits.length;
-      if (permitCount >= 4) {
+      if (permitCount >= 6) {
         return const SizedBox.shrink();
       }
       final nextPermitNum = permitCount + 1;
@@ -483,7 +481,7 @@ class _EditConfirmStartYourRouteState extends State<EditConfirmStartYourRoute> {
                 },
                 myLocationEnabled: true,
                 myLocationTrackingMode: MyLocationTrackingMode.none,
-                compassEnabled: true,
+                compassEnabled: false,
                 rotateGesturesEnabled: true,
                 scrollGesturesEnabled: !controller.isDragging.value,
                 tiltGesturesEnabled: true,
@@ -491,6 +489,14 @@ class _EditConfirmStartYourRouteState extends State<EditConfirmStartYourRoute> {
                 doubleClickZoomEnabled: false,
                 minMaxZoomPreference: const MinMaxZoomPreference(1, 20),
               )),
+          Positioned(
+            top: context.h(10),
+            left: context.w(10),
+            child: Obx(() => MapCompassWidget(
+                  bearingDegrees: controller.cameraBearing.value,
+                  onTap: controller.resetCompassBearing,
+                )),
+          ),
           Positioned(
             top: context.h(10),
             right: context.w(10),
@@ -1032,30 +1038,6 @@ class _EditConfirmStartYourRouteState extends State<EditConfirmStartYourRoute> {
                   isDense: true),
             ),
           ),
-          GestureDetector(
-            onTap: () {
-              FocusScope.of(context).unfocus();
-              _showMicDialog(
-                context,
-                title: 'Speak Route Name',
-                onDone: (text) {
-                  controller.updateRouteName(text);
-                },
-              );
-            },
-            child: Padding(
-              padding: EdgeInsets.only(right: context.w(6)),
-              child: Container(
-                width: context.w(20),
-                height: context.h(20),
-                decoration: BoxDecoration(
-                    color: AppColors.orange,
-                    borderRadius: BorderRadius.circular(context.r(6))),
-                child: Icon(Icons.mic_none,
-                    color: AppColors.white, size: context.sp(18)),
-              ),
-            ),
-          ),
         ],
       ),
     );
@@ -1108,111 +1090,6 @@ class _EditConfirmStartYourRouteState extends State<EditConfirmStartYourRoute> {
                 letterSpacing: 0.5)),
       ),
     );
-  }
-
-  void _showMicDialog(BuildContext context,
-      {required String title, required Function(String) onDone}) {
-    RxBool isListening = false.obs;
-    RxString spokenText = ''.obs;
-
-    Get.dialog(AlertDialog(
-      backgroundColor: AppColors.darkGray,
-      title: Text(title, style: const TextStyle(color: Colors.white)),
-      content: Obx(() => Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                  spokenText.value.isEmpty
-                      ? 'Tap mic and speak...'
-                      : spokenText.value,
-                  style: const TextStyle(color: Colors.white)),
-              const SizedBox(height: 20),
-              GestureDetector(
-                onTap: () async {
-                  if (!isListening.value) {
-                    bool available = false;
-                    try {
-                      available = await _speech.initialize(
-                        onStatus: (status) {
-                          if (status == 'done' || status == 'notListening') {
-                            isListening.value = false;
-                          }
-                        },
-                        onError: (errorNotification) {
-                          isListening.value = false;
-                          if (errorNotification.errorMsg != 'error_no_match') {
-                            Get.snackbar('Speech Error', errorNotification.errorMsg,
-                                backgroundColor: Colors.orange,
-                                colorText: Colors.white,
-                                duration: const Duration(seconds: 2));
-                          }
-                        },
-                      );
-                    } catch (e) {
-                      debugPrint('Speech initialization error: $e');
-                      Get.snackbar('Not Supported',
-                          'Speech recognition is not available on this device.',
-                          backgroundColor: Colors.red,
-                          colorText: Colors.white,
-                          duration: const Duration(seconds: 2));
-                      return;
-                    }
-
-                    if (available) {
-                      isListening.value = true;
-                      String baseText = spokenText.value;
-                      if (baseText.isNotEmpty && !baseText.endsWith(' ')) {
-                        baseText += ' ';
-                      }
-
-                      // Delay slightly to prevent error_client on some devices
-                      await Future.delayed(const Duration(milliseconds: 200));
-
-                      _speech.listen(
-                        onResult: (val) {
-                          spokenText.value = baseText + val.recognizedWords;
-                        },
-                        listenFor: const Duration(seconds: 30),
-                        pauseFor: const Duration(seconds: 3),
-                      );
-                    } else {
-                      Get.snackbar('Error', 'Microphone permission denied',
-                          backgroundColor: Colors.red,
-                          colorText: Colors.white,
-                          duration: const Duration(seconds: 1));
-                    }
-                  } else {
-                    isListening.value = false;
-                    _speech.stop();
-                  }
-                },
-                child: CircleAvatar(
-                  radius: 30,
-                  backgroundColor:
-                      isListening.value ? Colors.red : AppColors.orange,
-                  child: Icon(isListening.value ? Icons.mic : Icons.mic_none,
-                      color: Colors.white, size: 30),
-                ),
-              )
-            ],
-          )),
-      actions: [
-        TextButton(
-            onPressed: () {
-              _speech.stop();
-              Get.back();
-            },
-            child: const Text('Cancel', style: TextStyle(color: Colors.white))),
-        TextButton(
-            onPressed: () {
-              _speech.stop();
-              Get.back();
-              onDone(spokenText.value);
-            },
-            child:
-                const Text('Done', style: TextStyle(color: AppColors.orange))),
-      ],
-    ));
   }
 }
 
@@ -1373,7 +1250,7 @@ class FullScreenMap extends StatelessWidget {
                     },
                     myLocationEnabled: true,
                     myLocationTrackingMode: MyLocationTrackingMode.none,
-                    compassEnabled: true,
+                    compassEnabled: false,
                     rotateGesturesEnabled: true,
                     scrollGesturesEnabled: !controller.isDragging.value,
                     tiltGesturesEnabled: true,
@@ -1381,6 +1258,14 @@ class FullScreenMap extends StatelessWidget {
                     doubleClickZoomEnabled: false,
                     minMaxZoomPreference: const MinMaxZoomPreference(1, 20),
                   )),
+              Positioned(
+                top: context.h(10),
+                left: context.w(10),
+                child: Obx(() => MapCompassWidget(
+                      bearingDegrees: controller.cameraBearing.value,
+                      onTap: controller.resetCompassBearing,
+                    )),
+              ),
               Positioned(
                 top: context.h(10),
                 right: context.w(10),

@@ -24,6 +24,7 @@ class DriveController extends GetxController
   final RxDouble vehicleLat = 23.8103.obs;
   final RxDouble vehicleLng = 90.4125.obs;
   final RxDouble vehicleBearing = 0.0.obs;
+  final RxDouble cameraBearing = 0.0.obs;
   double _targetBearing = 0.0;
 
   double? _previousLat;
