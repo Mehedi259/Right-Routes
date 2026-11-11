@@ -6,6 +6,8 @@ import 'package:get/get.dart';
 class AuthService {
   static SharedPreferences? _prefs;
   static const _secureStorage = FlutterSecureStorage();
+  static const String _hideCreateRouteTutorialKey =
+      'hide_create_route_tutorial_banner';
 
   // Initialize
   static Future<void> init() async {
@@ -359,6 +361,25 @@ class AuthService {
     return exists;
   }
 
+  /// Synchronously returns whether the driver checked "Don't show again"
+  /// on the Permit 1 Create Route tutorial banner.
+  static bool getHideCreateRouteTutorialBanner() {
+    return _prefs?.getBool(_hideCreateRouteTutorialKey) ?? false;
+  }
+
+  /// Loads the Create Route tutorial banner preference, initializing
+  /// SharedPreferences if AuthService.init() has not run yet.
+  static Future<bool> loadHideCreateRouteTutorialBanner() async {
+    _prefs ??= await SharedPreferences.getInstance();
+    return _prefs!.getBool(_hideCreateRouteTutorialKey) ?? false;
+  }
+
+  /// Persists whether the Permit 1 Create Route tutorial banner should be hidden.
+  static Future<bool> setHideCreateRouteTutorialBanner(bool hide) async {
+    _prefs ??= await SharedPreferences.getInstance();
+    return await _prefs!.setBool(_hideCreateRouteTutorialKey, hide);
+  }
+
   // ═══════════════════════════════════════════════════════════
   // 🚪 LOGOUT & CLEAR DATA
   // ═══════════════════════════════════════════════════════════
@@ -382,12 +403,18 @@ class AuthService {
     // Check if Touch ID was enabled before clearing
     final bool touchIDEnabled = getTouchIDEnabled();
     final String? savedEmail = getUserEmail();
+    final bool hideTutorialBanner = getHideCreateRouteTutorialBanner();
 
     // Clear secure auth tokens ONLY (keep saved password for biometric)
     await clearAuthTokens();
 
     // Clear SharedPreferences user data
     await _prefs?.clear();
+
+    // Preserve device-level "Don't show again" preference for the tutorial banner
+    if (hideTutorialBanner) {
+      await setHideCreateRouteTutorialBanner(true);
+    }
 
     // If Touch ID was enabled: restore the settings so biometric works next login
     if (touchIDEnabled) {

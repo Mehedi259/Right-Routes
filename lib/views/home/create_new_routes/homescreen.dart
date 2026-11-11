@@ -8,6 +8,7 @@ import 'package:right_routes/views/home/home_all_widgets/dialog/dialog_map.dart'
 import 'package:right_routes/views/home/home_all_widgets/dialog/dialog_document.dart';
 import '../../../../global_widgets/custom_navbar.dart';
 import '../../../../utils/assets_manager.dart';
+import 'package:right_routes/core/constants/services/auth_service.dart';
 import 'package:right_routes/views/home/create_new_routes/home_controller.dart';
 import 'home_screen_map.dart';
 import 'dart:io';
@@ -23,6 +24,9 @@ class Homescreen extends StatefulWidget {
 
 class _HomescreenState extends State<Homescreen> {
   late final HomeController _ctrl;
+  bool _dismissedTutorialForVisit = false;
+  bool _tutorialPermanentlyHidden = false;
+  bool _dontShowTutorialChecked = false;
 
   @override
   void initState() {
@@ -30,6 +34,26 @@ class _HomescreenState extends State<Homescreen> {
     _ctrl = Get.isRegistered<HomeController>()
         ? Get.find<HomeController>()
         : Get.put(HomeController(), permanent: true);
+    _tutorialPermanentlyHidden = AuthService.getHideCreateRouteTutorialBanner();
+    _dontShowTutorialChecked = _tutorialPermanentlyHidden;
+    _syncTutorialBannerPreference();
+  }
+
+  Future<void> _syncTutorialBannerPreference() async {
+    final hidden = await AuthService.loadHideCreateRouteTutorialBanner();
+    if (!mounted || hidden == _tutorialPermanentlyHidden) return;
+    setState(() {
+      _tutorialPermanentlyHidden = hidden;
+      _dontShowTutorialChecked = hidden;
+    });
+  }
+
+  Future<void> _handleToggleDontShowTutorialAgain() async {
+    final nextValue = !_dontShowTutorialChecked;
+    setState(() {
+      _dontShowTutorialChecked = nextValue;
+    });
+    await AuthService.setHideCreateRouteTutorialBanner(nextValue);
   }
 
   @override
@@ -274,7 +298,11 @@ class _HomescreenState extends State<Homescreen> {
             ),
             SizedBox(width: context.w(6)),
             GestureDetector(
-              onTap: () => showPermitDialog(context),
+              behavior: HitTestBehavior.opaque,
+              onTap: () => showPermitDialog(
+                context,
+                showTutorialVideo: _ctrl.currentPermitIndex.value == 1,
+              ),
               child: SvgPicture.asset(
                 'assets/icons/Question-Box-gray.svg',
                 width: context.w(22),
@@ -336,6 +364,29 @@ class _HomescreenState extends State<Homescreen> {
     );
   }
 
+  Widget _buildPermitOneTutorialBanner(BuildContext context) {
+    return Obx(() {
+      final bool isPermitOne = _ctrl.currentPermitIndex.value == 1;
+      if (!isPermitOne ||
+          _tutorialPermanentlyHidden ||
+          _dismissedTutorialForVisit) {
+        return const SizedBox.shrink();
+      }
+      return Padding(
+        padding: EdgeInsets.only(top: context.h(14)),
+        child: CreateRouteTutorialBanner(
+          dontShowAgain: _dontShowTutorialChecked,
+          onToggleDontShowAgain: _handleToggleDontShowTutorialAgain,
+          onClose: () {
+            setState(() {
+              _dismissedTutorialForVisit = true;
+            });
+          },
+        ),
+      );
+    });
+  }
+
   Widget _buildChooseSection(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -343,6 +394,7 @@ class _HomescreenState extends State<Homescreen> {
         _buildChooseHeaderRow(context),
         SizedBox(height: context.h(14)),
         _buildChoiceButtonsRow(context),
+        _buildPermitOneTutorialBanner(context),
         SizedBox(height: context.h(20)),
       ],
     );
@@ -358,6 +410,7 @@ class _HomescreenState extends State<Homescreen> {
         _buildChooseHeaderRow(context),
         SizedBox(height: context.h(14)),
         _buildChoiceButtonsRow(context, selectedMode: 'import'),
+        _buildPermitOneTutorialBanner(context),
       ],
     );
   }
@@ -1002,6 +1055,109 @@ class HomeChoiceButtonsRow extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Green tutorial banner shown on the Permit 1 Create Route screen unless
+/// the driver closes it for the current visit or checks "Don't show again.".
+class CreateRouteTutorialBanner extends StatelessWidget {
+  final bool dontShowAgain;
+  final VoidCallback onToggleDontShowAgain;
+  final VoidCallback onClose;
+  final VoidCallback? onLinkTap;
+
+  const CreateRouteTutorialBanner({
+    super.key,
+    required this.dontShowAgain,
+    required this.onToggleDontShowAgain,
+    required this.onClose,
+    this.onLinkTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: const Color(0xFF12A900),
+        borderRadius: BorderRadius.circular(context.r(10)),
+      ),
+      child: Stack(
+        children: [
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+              context.w(16),
+              context.h(22),
+              context.w(36),
+              context.h(16),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CreateRouteTutorialMessage(onLinkTap: onLinkTap),
+                SizedBox(height: context.h(12)),
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: onToggleDontShowAgain,
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: context.h(2)),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: context.s(18),
+                          height: context.s(18),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(context.r(2)),
+                          ),
+                          child: dontShowAgain
+                              ? Icon(
+                                  Icons.check,
+                                  size: context.s(15),
+                                  color: const Color(0xFF12A900),
+                                )
+                              : null,
+                        ),
+                        SizedBox(width: context.w(8)),
+                        Text(
+                          "Don't show again.",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: context.sp(16),
+                            fontFamily: 'Lato',
+                            fontWeight: FontWeight.w400,
+                            height: 1.3,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Positioned(
+            top: context.h(6),
+            right: context.w(6),
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onClose,
+              child: Padding(
+                padding: EdgeInsets.all(context.s(4)),
+                child: SvgPicture.asset(
+                  'assets/icons/Close-X-Circle.svg',
+                  height: context.h(22),
+                  width: context.w(22),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

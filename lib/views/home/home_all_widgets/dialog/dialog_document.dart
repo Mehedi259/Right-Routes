@@ -1,8 +1,75 @@
 import 'package:flutter/material.dart';
 import 'package:right_routes/utils/responsive_ext.dart';
 import 'package:right_routes/global_widgets/custom_info_dialog.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-void showPermitDialog(BuildContext context) {
+const String createRouteTutorialVideoUrl = 'https://youtu.be/YqIv0VveXI4';
+
+/// Opens the "How to Create a Route" YouTube tutorial externally.
+Future<void> openCreateRouteTutorialVideo() async {
+  final uri = Uri.parse(createRouteTutorialVideoUrl);
+  try {
+    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!launched) {
+      await launchUrl(uri, mode: LaunchMode.platformDefault);
+    }
+  } catch (e) {
+    debugPrint('Could not launch tutorial video URL: $e');
+  }
+}
+
+/// Shared message + clickable tutorial link shown in both the Permit 1 green
+/// banner and the Permit 1 Choose one help popup.
+class CreateRouteTutorialMessage extends StatelessWidget {
+  final VoidCallback? onLinkTap;
+
+  const CreateRouteTutorialMessage({super.key, this.onLinkTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final TextStyle baseStyle = TextStyle(
+      color: Colors.white,
+      fontSize: context.sp(16),
+      fontFamily: 'Lato',
+      fontWeight: FontWeight.w400,
+      height: 1.5,
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text.rich(
+          TextSpan(
+            children: [
+              TextSpan(
+                text: 'Watch this short video on ',
+                style: baseStyle,
+              ),
+              TextSpan(
+                text: 'How to Create a Route:',
+                style: baseStyle.copyWith(fontWeight: FontWeight.w700),
+              ),
+            ],
+          ),
+        ),
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onLinkTap ?? openCreateRouteTutorialVideo,
+          child: Text(
+            createRouteTutorialVideoUrl,
+            style: baseStyle.copyWith(
+              decoration: TextDecoration.underline,
+              decorationColor: Colors.white,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+void showPermitDialog(BuildContext context, {bool showTutorialVideo = false}) {
   Widget buildParagraph(String text, {String? boldPrefix}) {
     return Padding(
       padding: EdgeInsets.only(bottom: context.h(12)),
@@ -39,6 +106,11 @@ void showPermitDialog(BuildContext context) {
   showCustomInfoDialog(
     context: context,
     customWidgets: [
+      if (showTutorialVideo)
+        Padding(
+          padding: EdgeInsets.only(bottom: context.h(12)),
+          child: const CreateRouteTutorialMessage(),
+        ),
       buildParagraph(
         "There are two ways to input directions: Import a PDF of the permit or type in directions. You can type in your own route independent of what's shown on the permit.",
       ),
