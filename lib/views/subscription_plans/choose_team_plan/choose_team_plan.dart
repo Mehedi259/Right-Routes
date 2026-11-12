@@ -4,23 +4,19 @@ import 'package:get/get.dart';
 import 'package:right_routes/core/routes/all_routes.dart';
 import 'package:right_routes/utils/colors.dart';
 import 'package:right_routes/core/constants/services/api_client.dart';
+import 'package:right_routes/core/constants/services/subscription_billing_service.dart';
 import 'package:right_routes/core/constants/api_config/home_api_constant/home_api_constant.dart';
 import '../../../global_widgets/button_reusable_short_width.dart';
 import '../../../utils/assets_manager.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'dart:convert';
-import 'package:dio/dio.dart' as dio;
-// ─── Controller ─────────────────────────────────────────────────────────────
-
-import 'dart:convert';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:right_routes/core/constants/services/api_client.dart';
-import 'package:right_routes/core/constants/api_config/home_api_constant/home_api_constant.dart';
 import '../subscription_model/subscription_model.dart';
+
+// ─── Controller ─────────────────────────────────────────────────────────────
 
 class ChooseTeamPlanController extends GetxController {
   var isLoadingPlans = false.obs;
   var isSubscribing = false.obs;
+  final _billing = SubscriptionBillingService.instance;
 
   var plan5 = Rxn<SubscriptionPlanModel>();
   var plan10 = Rxn<SubscriptionPlanModel>();
@@ -33,6 +29,7 @@ class ChooseTeamPlanController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    _billing.ensureInitialized();
     fetchPlans();
   }
 
@@ -53,22 +50,39 @@ class ChooseTeamPlanController extends GetxController {
         final data = response.data is String ? jsonDecode(response.data) : response.data;
         if (data['success'] == true) {
           final List list = data['data'] ?? [];
-          
+          final Set<String> productIds = {
+            SubscriptionBillingService.productTeam5Monthly,
+            SubscriptionBillingService.productTeam10Monthly,
+            SubscriptionBillingService.productTeam25Monthly,
+            SubscriptionBillingService.productTeam50Monthly,
+            SubscriptionBillingService.productTeam100Monthly,
+          };
+
           for (var item in list) {
             final model = SubscriptionPlanModel.fromJson(item);
+            if (model.productId.isNotEmpty) {
+              productIds.add(model.productId);
+            }
             final limitStr = model.teamLimit?.toString() ?? '';
-            if (limitStr == '5') {
+            if (limitStr == '5' || model.productId == SubscriptionBillingService.productTeam5Monthly) {
               plan5.value = model;
-            } else if (limitStr == '10') {
+            } else if (limitStr == '10' || model.productId == SubscriptionBillingService.productTeam10Monthly) {
               plan10.value = model;
-            } else if (limitStr == '25') {
+            } else if (limitStr == '25' || model.productId == SubscriptionBillingService.productTeam25Monthly) {
               plan25.value = model;
-            } else if (limitStr == '50') {
+            } else if (limitStr == '50' || model.productId == SubscriptionBillingService.productTeam50Monthly) {
               plan50.value = model;
-            } else if (limitStr == '100') {
+            } else if (limitStr == '100' || model.productId == SubscriptionBillingService.productTeam100Monthly) {
               plan100.value = model;
             }
           }
+
+          await _billing.loadStoreProducts(productIds);
+          plan5.refresh();
+          plan10.refresh();
+          plan25.refresh();
+          plan50.refresh();
+          plan100.refresh();
         }
       }
     } catch (e) {
@@ -79,6 +93,20 @@ class ChooseTeamPlanController extends GetxController {
     }
   }
 
+  String displayPriceFor({
+    required SubscriptionPlanModel? plan,
+    required String fallbackProductId,
+    required String fallbackPrice,
+  }) {
+    final pid = (plan != null && plan.productId.isNotEmpty) ? plan.productId : fallbackProductId;
+    final storePrice = _billing.storePriceFor(pid);
+    if (storePrice != null && storePrice.isNotEmpty) {
+      return '$storePrice/MO';
+    }
+    final raw = (plan?.price.isNotEmpty ?? false) ? plan!.price : fallbackPrice;
+    return '\$$raw/MO';
+  }
+
   Future<void> subscribe() async {
     if (selected.value.isEmpty) {
       Get.snackbar('Error', 'Please select a plan',
@@ -86,20 +114,16 @@ class ChooseTeamPlanController extends GetxController {
       return;
     }
 
-    int planId = -1;
-    if (selected.value == "plan5") {
-      planId = plan5.value?.id ?? -1;
-    } else if (selected.value == "plan10") {
-      planId = plan10.value?.id ?? -1;
-    } else if (selected.value == "plan25") {
-      planId = plan25.value?.id ?? -1;
-    } else if (selected.value == "plan50") {
-      planId = plan50.value?.id ?? -1;
-    } else if (selected.value == "plan100") {
-      planId = plan100.value?.id ?? -1;
-    }
+    final SubscriptionPlanModel? chosenPlan = switch (selected.value) {
+      'plan5' => plan5.value,
+      'plan10' => plan10.value,
+      'plan25' => plan25.value,
+      'plan50' => plan50.value,
+      'plan100' => plan100.value,
+      _ => null,
+    };
 
-    if (planId == -1) {
+    if (chosenPlan == null || chosenPlan.id <= 0) {
       Get.snackbar('Error', 'This plan is currently unavailable.',
           backgroundColor: Colors.red, colorText: Colors.white);
       return;
@@ -107,70 +131,17 @@ class ChooseTeamPlanController extends GetxController {
 
     isSubscribing.value = true;
     try {
-      final purchaseUrl = Uri.parse(HomeApiConstant.baseUrl + HomeApiConstant.purchasePlan);
+      await _billing.purchasePlan(chosenPlan, isTeamFlow: true);
+    } finally {
+      isSubscribing.value = false;
+    }
+  }
 
-      final purchaseResponse = await ApiClient.post(
-        purchaseUrl,
-        body: dio.FormData.fromMap({'plan_id': planId.toString()}),
-      );
-
-      if (purchaseResponse.statusCode == 201 || purchaseResponse.statusCode == 200) {
-        final pData = purchaseResponse.data is String
-            ? jsonDecode(purchaseResponse.data)
-            : purchaseResponse.data;
-
-        if (pData['success'] == true && pData['data'] != null && pData['data']['uuid'] != null) {
-          final String uuid = pData['data']['uuid'];
-          final String productId = pData['data']['plan_product_id'] ?? 'default_product_id';
-          final int timestamp = DateTime.now().millisecondsSinceEpoch;
-          final String txId = 'tx_$timestamp';
-          final String token = 'token_$timestamp';
-
-          final verifyUrl = Uri.parse(HomeApiConstant.baseUrl + HomeApiConstant.purchaseVerify);
-          final String platformStr = GetPlatform.isIOS ? 'ios' : 'android';
-
-          final verifyResponse = await ApiClient.post(
-            verifyUrl,
-            body: dio.FormData.fromMap({
-              'subscription_plan_uuid': uuid,
-              'platform': platformStr,
-              'product_id': productId,
-              'transaction_id': txId,
-              'purchase_token': token,
-              if (GetPlatform.isIOS) 'receipt_data': token,
-            }),
-          );
-
-          if (verifyResponse.statusCode == 201 || verifyResponse.statusCode == 200) {
-            final vData = verifyResponse.data is String
-                ? jsonDecode(verifyResponse.data)
-                : verifyResponse.data;
-                
-            if (vData['success'] == true) {
-              Get.snackbar('Success', 'Subscription purchased successfully!',
-                  backgroundColor: Colors.green, colorText: Colors.white);
-              Get.offAllNamed(AppRoutes.teamManager);
-            } else {
-              Get.snackbar('Error', vData['message'] ?? 'Failed to verify purchase',
-                  backgroundColor: Colors.red, colorText: Colors.white);
-            }
-          } else {
-            final errorData = verifyResponse.data is String ? jsonDecode(verifyResponse.data) : verifyResponse.data;
-            Get.snackbar('Error', errorData['message'] ?? 'Failed to verify purchase with server',
-                backgroundColor: Colors.red, colorText: Colors.white);
-          }
-        } else {
-          Get.snackbar('Error', pData['message'] ?? 'Failed to get purchase UUID',
-              backgroundColor: Colors.red, colorText: Colors.white);
-        }
-      } else {
-        final errorData = purchaseResponse.data is String ? jsonDecode(purchaseResponse.data) : purchaseResponse.data;
-        Get.snackbar('Error', errorData['message'] ?? 'Failed to initiate purchase',
-            backgroundColor: Colors.red, colorText: Colors.white);
-      }
-    } catch (e) {
-      Get.snackbar('Error', 'An error occurred during subscription',
-          backgroundColor: Colors.red, colorText: Colors.white);
+  Future<void> restoreSubscription() async {
+    if (isSubscribing.value) return;
+    isSubscribing.value = true;
+    try {
+      await _billing.restoreSubscriptions();
     } finally {
       isSubscribing.value = false;
     }
@@ -241,7 +212,7 @@ class ChooseATeamPlan extends StatelessWidget {
 
                       /// Subtitle
                       Text(
-                        'Plans include dashboard, seat\nmanagement, support, and on-\nboarding. Cancel anytime.',
+                        'Start your 7-day free trial. Plans include\ndashboard, seat management, support,\nand onboarding. Cancel anytime.',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Colors.white,
@@ -254,12 +225,16 @@ class ChooseATeamPlan extends StatelessWidget {
 
                       SizedBox(height: context.h(19)),
 
-                      /// 🔹 Plan Tiles (Set 1)
+                      /// 🔹 Plan Tiles
                       Obx(() {
-                        final price = controller.plan5.value?.price ?? "69.00";
-                        return _planTile(context: context, 
+                        final price = controller.displayPriceFor(
+                          plan: controller.plan5.value,
+                          fallbackProductId: SubscriptionBillingService.productTeam5Monthly,
+                          fallbackPrice: "69.00",
+                        );
+                        return _planTile(context: context,
                           title: "UP TO 5 DRIVERS",
-                          price: "\$$price/MO",
+                          price: price,
                           badge: null,
                           selected: controller.selected.value == "plan5",
                           onTap: () => controller.selected.value = "plan5",
@@ -268,10 +243,14 @@ class ChooseATeamPlan extends StatelessWidget {
                       SizedBox(height: context.h(12)),
 
                       Obx(() {
-                        final price = controller.plan10.value?.price ?? "119.00";
-                        return _planTile(context: context, 
+                        final price = controller.displayPriceFor(
+                          plan: controller.plan10.value,
+                          fallbackProductId: SubscriptionBillingService.productTeam10Monthly,
+                          fallbackPrice: "119.00",
+                        );
+                        return _planTile(context: context,
                           title: "UP TO 10 DRIVERS",
-                          price: "\$$price/MO",
+                          price: price,
                           badge: null,
                           selected: controller.selected.value == "plan10",
                           onTap: () => controller.selected.value = "plan10",
@@ -280,22 +259,29 @@ class ChooseATeamPlan extends StatelessWidget {
                       SizedBox(height: context.h(12)),
 
                       Obx(() {
-                        final price = controller.plan25.value?.price ?? "249.00";
-                        return _planTile(context: context, 
+                        final price = controller.displayPriceFor(
+                          plan: controller.plan25.value,
+                          fallbackProductId: SubscriptionBillingService.productTeam25Monthly,
+                          fallbackPrice: "249.00",
+                        );
+                        return _planTile(context: context,
                           title: "UP TO 25 DRIVERS",
-                          price: "\$$price/MO",
+                          price: price,
                           badge: null,
                           selected: controller.selected.value == "plan25",
                           onTap: () => controller.selected.value = "plan25",
                         );
                       }),
                       SizedBox(height: context.h(12)),
-                      /// 🔹 Plan Tiles (Set 2) – optional duplicate, different keys
                       Obx(() {
-                        final price = controller.plan50.value?.price ?? "449.00";
-                        return _planTile(context: context, 
+                        final price = controller.displayPriceFor(
+                          plan: controller.plan50.value,
+                          fallbackProductId: SubscriptionBillingService.productTeam50Monthly,
+                          fallbackPrice: "449.00",
+                        );
+                        return _planTile(context: context,
                           title: "UP TO 50 DRIVERS",
-                          price: "\$$price/MO",
+                          price: price,
                           badge: null,
                           selected: controller.selected.value == "plan50",
                           onTap: () => controller.selected.value = "plan50",
@@ -304,10 +290,14 @@ class ChooseATeamPlan extends StatelessWidget {
                       SizedBox(height: context.h(12)),
 
                       Obx(() {
-                        final price = controller.plan100.value?.price ?? "749.00";
-                        return _planTile(context: context, 
+                        final price = controller.displayPriceFor(
+                          plan: controller.plan100.value,
+                          fallbackProductId: SubscriptionBillingService.productTeam100Monthly,
+                          fallbackPrice: "749.00",
+                        );
+                        return _planTile(context: context,
                           title: "UP TO 100 DRIVERS",
-                          price: "\$$price/MO",
+                          price: price,
                           badge: null,
                           selected: controller.selected.value == "plan100",
                           onTap: () => controller.selected.value = "plan100",
@@ -434,7 +424,9 @@ class ChooseATeamPlan extends StatelessWidget {
 
                             /// RESTORE SUBSCRIPTION
                             TextButton(
-                              onPressed: () {},
+                              onPressed: () {
+                                controller.restoreSubscription();
+                              },
                               child: Column(
                                 children: [
                                   Text(
@@ -519,55 +511,66 @@ Widget _planTile({
 
           SizedBox(width: context.w(7)),
 
-          /// Title
-          Text(
-            title,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: context.sp(24),
-              fontFamily: 'League Gothic',
-              fontWeight: FontWeight.w400,
-              letterSpacing: 1,
-              height: 1.17,
+          /// TITLE
+          Expanded(
+            child: Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: context.sp(24),
+                fontFamily: 'League Gothic',
+                fontWeight: FontWeight.w400,
+                letterSpacing: 1,
+                height: 1.17,
+              ),
             ),
           ),
 
-          const Spacer(),
+          SizedBox(width: context.w(8)),
 
           /// Price + Badge
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                price,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: context.sp(24),
-                  fontFamily: 'League Gothic',
-                  fontWeight: FontWeight.w400,
-                  letterSpacing: 1,
-                ),
-              ),
-              if (badge != null)
-                Container(
-                  margin: EdgeInsets.only(top: context.h(6)),
-                  padding: EdgeInsets.symmetric(horizontal: context.w(9)),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(context.r(5)),
-                  ),
-                  child: Text(
-                    badge,
+          Flexible(
+            fit: FlexFit.loose,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerRight,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    price,
                     style: TextStyle(
-                      color: AppColors.medGray,
-                      fontSize: context.sp(16),
-                      fontFamily: 'Lato',
-                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                      fontSize: context.sp(24),
+                      fontFamily: 'League Gothic',
+                      fontWeight: FontWeight.w400,
+                      letterSpacing: 1,
                     ),
                   ),
-                ),
-            ],
+                  if (badge != null)
+                    Container(
+                      margin: EdgeInsets.only(top: context.h(6)),
+                      padding: EdgeInsets.symmetric(horizontal: context.w(9)),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(context.r(5)),
+                      ),
+                      child: Text(
+                        badge,
+                        style: TextStyle(
+                          color: AppColors.medGray,
+                          fontSize: context.sp(16),
+                          fontFamily: 'Lato',
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
           ),
         ],
       ),

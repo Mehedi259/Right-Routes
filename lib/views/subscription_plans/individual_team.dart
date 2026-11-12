@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:right_routes/utils/responsive_ext.dart';
 import 'package:get/get.dart';
 import 'package:right_routes/core/routes/all_routes.dart';
+import 'package:right_routes/core/constants/services/subscription_billing_service.dart';
 import 'package:right_routes/utils/colors.dart';
 import '../../../utils/assets_manager.dart';
 import '../../global_widgets/button_reusable_short_width.dart';
@@ -11,7 +12,7 @@ class IndividualTeam extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // final planController = Get.put(PlanController());
+    final controller = Get.put(IndividualTeamController());
 
     return Scaffold(
       body: Container(
@@ -106,10 +107,12 @@ class IndividualTeam extends StatelessWidget {
                       SizedBox(height: context.h(206)),
 
                       /// Restore Subscription
-                      TextButton(
-                        onPressed: () {
-                          // planController.restoreSubscription();
-                        },
+                      Obx(() => TextButton(
+                        onPressed: controller.isRestoring.value
+                            ? null
+                            : () {
+                                controller.restoreSubscription();
+                              },
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           mainAxisSize: MainAxisSize.min,
@@ -125,7 +128,9 @@ class IndividualTeam extends StatelessWidget {
                               ),
                             ),
                             Text(
-                              'RESTORE SUBSCRIPTION',
+                              controller.isRestoring.value
+                                  ? 'RESTORING...'
+                                  : 'RESTORE SUBSCRIPTION',
                               style: TextStyle(
                                 color:AppColors.purple,
                                 fontSize: context.sp(20),
@@ -137,7 +142,7 @@ class IndividualTeam extends StatelessWidget {
                             ),
                           ],
                         ),
-                      ),
+                      )),
                       SizedBox(height: context.h(49)),
                     ],
                   ),
@@ -154,11 +159,24 @@ class IndividualTeam extends StatelessWidget {
 
 class IndividualTeamController extends GetxController {
   var selectedPlan = ''.obs;
+  var isRestoring = false.obs;
+
+  @override
+  void onInit() {
+    super.onInit();
+    SubscriptionBillingService.instance.ensureInitialized();
+  }
 
   void selectIndividual() => selectedPlan.value = 'individual';
   void selectTeam() => selectedPlan.value = 'team';
 
-  void restoreSubscription() {
-    // Implement restore logic here
+  Future<void> restoreSubscription() async {
+    if (isRestoring.value) return;
+    isRestoring.value = true;
+    try {
+      await SubscriptionBillingService.instance.restoreSubscriptions();
+    } finally {
+      isRestoring.value = false;
+    }
   }
 }

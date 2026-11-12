@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
+import 'package:right_routes/core/constants/api_config/home_api_constant/home_api_constant.dart';
+import 'package:right_routes/core/constants/services/api_client.dart';
 import 'package:right_routes/core/routes/all_routes.dart';
 import 'package:right_routes/global_widgets/custom_navbar.dart';
 import 'package:right_routes/utils/colors.dart';
@@ -17,11 +20,52 @@ class SingleSubscriberManageAccountController extends GetxController {
   RxBool showPassword = false.obs;
   RxString userEmail = "".obs;
   RxString userPassword = "".obs;
+  RxBool isLoadingPlan = true.obs;
+  RxString planNameAndType = "Loading...".obs;
+  RxString renewalDateText = "".obs;
 
   @override
   void onInit() {
     super.onInit();
     _loadData();
+    _fetchCurrentPlan();
+  }
+
+  Future<void> _fetchCurrentPlan() async {
+    try {
+      final uri = Uri.parse(HomeApiConstant.baseUrl + HomeApiConstant.currentPlan);
+      final response = await ApiClient.get(uri);
+      if (response.statusCode == 200) {
+        final data = response.data is String ? jsonDecode(response.data) : response.data;
+        if (data['success'] == true && data['data'] != null) {
+          final pData = data['data'];
+          final String pName = (pData['plan_name'] ?? '').toString().trim();
+          final String bType = (pData['billing_type'] ?? '').toString().trim();
+          planNameAndType.value = pName.isNotEmpty
+              ? pName
+              : (bType.isNotEmpty ? bType : 'Active Plan');
+
+          final String expiresAt = (pData['expires_at'] ?? '').toString();
+          if (expiresAt.isNotEmpty) {
+            final dt = DateTime.tryParse(expiresAt)?.toLocal();
+            if (dt != null) {
+              final mm = dt.month.toString().padLeft(2, '0');
+              final dd = dt.day.toString().padLeft(2, '0');
+              renewalDateText.value = "Renewal Date: $mm/$dd/${dt.year}";
+            }
+          }
+        } else {
+          planNameAndType.value = "No active plan";
+          renewalDateText.value = "";
+        }
+      } else {
+        planNameAndType.value = "Unable to load plan";
+      }
+    } catch (_) {
+      planNameAndType.value = "Unable to load plan";
+    } finally {
+      isLoadingPlan.value = false;
+    }
   }
 
   Future<void> _loadData() async {
@@ -355,25 +399,33 @@ class SingleSubscriberScreen extends StatelessWidget {
           ),
         ),
         SizedBox(height: context.h(10)),
-        Text(
-          "sub.monthly",
+        Obx(() => Text(
+          c.planNameAndType.value,
           style: TextStyle(
             color: Colors.white,
             fontSize: context.sp(18),
             fontFamily: 'Lato',
             fontWeight: FontWeight.w500,
           ),
-        ),
-        SizedBox(height: context.h(10)),
-        Text(
-          "Renewal Date: 07/03/2026",
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: context.sp(18),
-            fontFamily: 'Lato',
-            fontWeight: FontWeight.w500,
-          ),
-        ),
+        )),
+        Obx(() {
+          if (c.renewalDateText.value.isEmpty) return const SizedBox.shrink();
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(height: context.h(10)),
+              Text(
+                c.renewalDateText.value,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: context.sp(18),
+                  fontFamily: 'Lato',
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          );
+        }),
         SizedBox(height: context.h(4)),
         RRRightArrowTile(
           title: "Change Plan",

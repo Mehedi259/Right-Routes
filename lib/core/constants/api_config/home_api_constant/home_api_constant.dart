@@ -18,5 +18,6 @@ class HomeApiConstant {
   static const String currentPlan = "/subscription/current-plan/";
   static const String purchasePlan = "/subscription/purchase/";
   static const String purchaseVerify = "/subscription/purchase-verify/";
+  static const String restoreSubscription = "/subscription/restore/";
   static const String subscriptionPlans = '/subscription-plans/';
 }

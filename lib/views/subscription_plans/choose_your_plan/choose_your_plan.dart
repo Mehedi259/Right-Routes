@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:right_routes/utils/responsive_ext.dart';
 import 'package:get/get.dart';
 import 'package:right_routes/utils/colors.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'dart:convert';
-import 'package:dio/dio.dart' as dio;
 import 'package:right_routes/core/constants/services/api_client.dart';
+import 'package:right_routes/core/constants/services/subscription_billing_service.dart';
 import 'package:right_routes/core/constants/api_config/home_api_constant/home_api_constant.dart';
 import 'package:right_routes/core/routes/all_routes.dart';
 import '../../../global_widgets/button_reusable_short_width.dart';
@@ -15,7 +14,8 @@ import '../subscription_model/subscription_model.dart';
 class PlanController extends GetxController {
   var isLoadingPlans = false.obs;
   var isSubscribing = false.obs;
-  
+  final _billing = SubscriptionBillingService.instance;
+
   // Storing the specific plans we find from the API
   var monthlyPlan = Rxn<SubscriptionPlanModel>();
   var annualPlan = Rxn<SubscriptionPlanModel>();
@@ -26,6 +26,7 @@ class PlanController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    _billing.ensureInitialized();
     fetchPlans();
   }
 
@@ -45,30 +46,29 @@ class PlanController extends GetxController {
         final data = response.data is String ? jsonDecode(response.data) : response.data;
         if (data['success'] == true) {
           final List list = data['data'] ?? [];
-          
+          final Set<String> productIds = {
+            SubscriptionBillingService.productIndividualAnnual,
+            SubscriptionBillingService.productIndividualMonthly,
+          };
+
           for (var item in list) {
             final model = SubscriptionPlanModel.fromJson(item);
+            if (model.productId.isNotEmpty) {
+              productIds.add(model.productId);
+            }
             final bType = model.billingType;
-            if (bType == 'MONTHLY') {
-              if (model.price == '50.00' || model.price == '50' || model.price.isEmpty) {
-                final updatedModel = SubscriptionPlanModel(
-                  id: model.id,
-                  title: model.title,
-                  description: model.description,
-                  price: '14.99',
-                  billingType: model.billingType,
-                  planType: model.planType,
-                  teamLimit: model.teamLimit,
-                  isActive: model.isActive,
-                );
-                monthlyPlan.value = updatedModel;
-              } else {
-                monthlyPlan.value = model;
-              }
-            } else if (bType == 'ANNUAL') {
+            if (bType == 'MONTHLY' || model.productId == SubscriptionBillingService.productIndividualMonthly) {
+              monthlyPlan.value = model;
+            } else if (bType == 'YEARLY' ||
+                bType == 'ANNUAL' ||
+                model.productId == SubscriptionBillingService.productIndividualAnnual) {
               annualPlan.value = model;
             }
           }
+
+          await _billing.loadStoreProducts(productIds);
+          monthlyPlan.refresh();
+          annualPlan.refresh();
         }
       }
     } catch (e) {
@@ -79,6 +79,21 @@ class PlanController extends GetxController {
     }
   }
 
+  String displayPriceFor({
+    required SubscriptionPlanModel? plan,
+    required String fallbackProductId,
+    required String fallbackPrice,
+    required String suffix,
+  }) {
+    final pid = (plan != null && plan.productId.isNotEmpty) ? plan.productId : fallbackProductId;
+    final storePrice = _billing.storePriceFor(pid);
+    if (storePrice != null && storePrice.isNotEmpty) {
+      return '$storePrice/$suffix';
+    }
+    final raw = (plan?.price.isNotEmpty ?? false) ? plan!.price : fallbackPrice;
+    return '\$$raw/$suffix';
+  }
+
   Future<void> subscribe() async {
     if (selected.value.isEmpty) {
       Get.snackbar('Error', 'Please select a plan',
@@ -86,14 +101,10 @@ class PlanController extends GetxController {
       return;
     }
 
-    int planId = -1;
-    if (selected.value == "monthly") {
-      planId = monthlyPlan.value?.id ?? -1;
-    } else if (selected.value == "annual") {
-      planId = annualPlan.value?.id ?? -1;
-    }
+    final SubscriptionPlanModel? chosenPlan =
+        selected.value == "monthly" ? monthlyPlan.value : annualPlan.value;
 
-    if (planId == -1) {
+    if (chosenPlan == null || chosenPlan.id <= 0) {
       Get.snackbar('Error', 'This plan is currently unavailable.',
           backgroundColor: Colors.red, colorText: Colors.white);
       return;
@@ -101,68 +112,17 @@ class PlanController extends GetxController {
 
     isSubscribing.value = true;
     try {
-      final purchaseUrl = Uri.parse(HomeApiConstant.baseUrl + HomeApiConstant.purchasePlan);
+      await _billing.purchasePlan(chosenPlan, isTeamFlow: false);
+    } finally {
+      isSubscribing.value = false;
+    }
+  }
 
-      final purchaseResponse = await ApiClient.post(
-        purchaseUrl,
-        body: dio.FormData.fromMap({'plan_id': planId.toString()}),
-      );
-
-      if (purchaseResponse.statusCode == 201 || purchaseResponse.statusCode == 200) {
-        final pData = purchaseResponse.data is String
-            ? jsonDecode(purchaseResponse.data)
-            : purchaseResponse.data;
-
-        if (pData['success'] == true && pData['data'] != null && pData['data']['uuid'] != null) {
-          final String uuid = pData['data']['uuid'];
-          final String productId = pData['data']['plan_product_id'] ?? 'default_product_id';
-          final int timestamp = DateTime.now().millisecondsSinceEpoch;
-          final String txId = 'tx_$timestamp';
-          final String token = 'token_$timestamp';
-
-          final verifyUrl = Uri.parse(HomeApiConstant.baseUrl + HomeApiConstant.purchaseVerify);
-          final String platformStr = GetPlatform.isIOS ? 'ios' : 'android';
-
-          final verifyResponse = await ApiClient.post(
-            verifyUrl,
-            body: dio.FormData.fromMap({
-              'subscription_plan_uuid': uuid,
-              'platform': platformStr,
-              'product_id': productId,
-              'transaction_id': txId,
-              'purchase_token': token,
-              if (GetPlatform.isIOS) 'receipt_data': token,
-            }),
-          );
-
-          if (verifyResponse.statusCode == 201 || verifyResponse.statusCode == 200) {
-            final vData = verifyResponse.data is String
-                ? jsonDecode(verifyResponse.data)
-                : verifyResponse.data;
-                
-            if (vData['success'] == true) {
-              Get.snackbar('Success', 'Subscription purchased successfully!',
-                  backgroundColor: Colors.green, colorText: Colors.white);
-              Get.offAllNamed(AppRoutes.homeScreen); // Redirect to Home or appropriate screen
-            } else {
-              Get.snackbar('Error', vData['message'] ?? 'Failed to verify purchase',
-                  backgroundColor: Colors.red, colorText: Colors.white);
-            }
-          } else {
-            Get.snackbar('Error', 'Failed to verify purchase with server',
-                backgroundColor: Colors.red, colorText: Colors.white);
-          }
-        } else {
-          Get.snackbar('Error', 'Failed to get purchase UUID',
-              backgroundColor: Colors.red, colorText: Colors.white);
-        }
-      } else {
-        Get.snackbar('Error', 'Failed to initiate purchase',
-            backgroundColor: Colors.red, colorText: Colors.white);
-      }
-    } catch (e) {
-      Get.snackbar('Error', 'An error occurred during subscription',
-          backgroundColor: Colors.red, colorText: Colors.white);
+  Future<void> restoreSubscription() async {
+    if (isSubscribing.value) return;
+    isSubscribing.value = true;
+    try {
+      await _billing.restoreSubscriptions();
     } finally {
       isSubscribing.value = false;
     }
@@ -258,10 +218,15 @@ class ChooseYourPlan extends StatelessWidget {
 
                             /// ============== ANNUAL PLAN TILE =================
                             Obx(() {
-                              final price = controller.annualPlan.value?.price ?? "119.99";
-                              return _planTile(context: context, 
+                              final price = controller.displayPriceFor(
+                                plan: controller.annualPlan.value,
+                                fallbackProductId: SubscriptionBillingService.productIndividualAnnual,
+                                fallbackPrice: "119.99",
+                                suffix: "YR",
+                              );
+                              return _planTile(context: context,
                                 title: "ANNUAL PLAN",
-                                price: "\$$price/YR",
+                                price: price,
                                 badge: "Save 33%",
                                 selected: controller.selected.value == "annual",
                                 onTap: () =>
@@ -273,13 +238,15 @@ class ChooseYourPlan extends StatelessWidget {
 
                             /// MONTHLY PLAN TILE
                             Obx(() {
-                              final rawPrice = controller.monthlyPlan.value?.price;
-                              final price = (rawPrice == null || rawPrice == "50.00" || rawPrice == "50")
-                                  ? "14.99"
-                                  : rawPrice;
-                              return _planTile(context: context, 
+                              final price = controller.displayPriceFor(
+                                plan: controller.monthlyPlan.value,
+                                fallbackProductId: SubscriptionBillingService.productIndividualMonthly,
+                                fallbackPrice: "14.99",
+                                suffix: "MO",
+                              );
+                              return _planTile(context: context,
                                 title: "MONTHLY PLAN",
-                                price: "\$$price/MO",
+                                price: price,
                                 badge: null,
                                 selected:
                                     controller.selected.value == "monthly",
@@ -326,7 +293,7 @@ class ChooseYourPlan extends StatelessWidget {
                             SizedBox(height: context.h(85)),
                             TextButton(
                               onPressed: () {
-                                // planController.restoreSubscription();
+                                controller.restoreSubscription();
                               },
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -415,60 +382,71 @@ Widget _planTile({required BuildContext context,
           SizedBox(width: context.w(15)),
 
           /// TITLE
-          Text(
-            title,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: context.sp(24),
-              fontFamily: 'League Gothic',
-              fontWeight: FontWeight.w400,
-              height: 1.1,
-              letterSpacing: 1,
+          Expanded(
+            child: Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: context.sp(24),
+                fontFamily: 'League Gothic',
+                fontWeight: FontWeight.w400,
+                height: 1.1,
+                letterSpacing: 1,
+              ),
             ),
           ),
 
-          const Spacer(),
+          SizedBox(width: context.w(8)),
 
           /// PRICE + OPTIONAL BADGE
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                price,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: context.sp(26),
-                  fontFamily: 'League Gothic',
-                  fontWeight: FontWeight.w400,
-                  height: 1.0,
-                  letterSpacing: 1,
-                ),
-              ),
-              if (badge != null)
-                Container(
-                  margin: EdgeInsets.only(top: context.h(3)),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: context.w(8),
-                    vertical: context.h(2),
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(context.r(4)),
-                  ),
-                  child: Text(
-                    badge,
+          Flexible(
+            fit: FlexFit.loose,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerRight,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    price,
                     style: TextStyle(
-                      color: AppColors.darkGray,
-                      fontSize: context.sp(13),
-                      fontFamily: 'Lato',
-                      fontWeight: FontWeight.w700,
-                      height: 1.15,
+                      color: Colors.white,
+                      fontSize: context.sp(26),
+                      fontFamily: 'League Gothic',
+                      fontWeight: FontWeight.w400,
+                      height: 1.0,
+                      letterSpacing: 1,
                     ),
                   ),
-                ),
-            ],
+                  if (badge != null)
+                    Container(
+                      margin: EdgeInsets.only(top: context.h(3)),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: context.w(8),
+                        vertical: context.h(2),
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(context.r(4)),
+                      ),
+                      child: Text(
+                        badge,
+                        style: TextStyle(
+                          color: AppColors.darkGray,
+                          fontSize: context.sp(13),
+                          fontFamily: 'Lato',
+                          fontWeight: FontWeight.w700,
+                          height: 1.15,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
           ),
         ],
       ),
