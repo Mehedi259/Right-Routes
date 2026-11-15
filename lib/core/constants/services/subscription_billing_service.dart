@@ -538,3 +538,4 @@ class SubscriptionBillingService {
     Get.snackbar('Subscription', msg, backgroundColor: Colors.orange.shade800, colorText: Colors.white);
   }
 }
+
