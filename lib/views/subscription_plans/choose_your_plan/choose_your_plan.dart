@@ -221,13 +221,13 @@ class ChooseYourPlan extends StatelessWidget {
                               final price = controller.displayPriceFor(
                                 plan: controller.annualPlan.value,
                                 fallbackProductId: SubscriptionBillingService.productIndividualAnnual,
-                                fallbackPrice: "119.99",
+                                fallbackPrice: "149.99",
                                 suffix: "YR",
                               );
                               return _planTile(context: context,
                                 title: "ANNUAL PLAN",
                                 price: price,
-                                badge: "Save 33%",
+                                badge: "Save 30%",
                                 selected: controller.selected.value == "annual",
                                 onTap: () =>
                                     controller.selected.value = "annual",
@@ -241,7 +241,7 @@ class ChooseYourPlan extends StatelessWidget {
                               final price = controller.displayPriceFor(
                                 plan: controller.monthlyPlan.value,
                                 fallbackProductId: SubscriptionBillingService.productIndividualMonthly,
-                                fallbackPrice: "14.99",
+                                fallbackPrice: "17.99",
                                 suffix: "MO",
                               );
                               return _planTile(context: context,

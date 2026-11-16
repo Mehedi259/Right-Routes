@@ -230,7 +230,7 @@ class ChooseATeamPlan extends StatelessWidget {
                         final price = controller.displayPriceFor(
                           plan: controller.plan5.value,
                           fallbackProductId: SubscriptionBillingService.productTeam5Monthly,
-                          fallbackPrice: "69.00",
+                          fallbackPrice: "79.00",
                         );
                         return _planTile(context: context,
                           title: "UP TO 5 DRIVERS",
@@ -246,7 +246,7 @@ class ChooseATeamPlan extends StatelessWidget {
                         final price = controller.displayPriceFor(
                           plan: controller.plan10.value,
                           fallbackProductId: SubscriptionBillingService.productTeam10Monthly,
-                          fallbackPrice: "119.00",
+                          fallbackPrice: "139.00",
                         );
                         return _planTile(context: context,
                           title: "UP TO 10 DRIVERS",
@@ -262,7 +262,7 @@ class ChooseATeamPlan extends StatelessWidget {
                         final price = controller.displayPriceFor(
                           plan: controller.plan25.value,
                           fallbackProductId: SubscriptionBillingService.productTeam25Monthly,
-                          fallbackPrice: "249.00",
+                          fallbackPrice: "279.00",
                         );
                         return _planTile(context: context,
                           title: "UP TO 25 DRIVERS",
@@ -277,7 +277,7 @@ class ChooseATeamPlan extends StatelessWidget {
                         final price = controller.displayPriceFor(
                           plan: controller.plan50.value,
                           fallbackProductId: SubscriptionBillingService.productTeam50Monthly,
-                          fallbackPrice: "449.00",
+                          fallbackPrice: "499.00",
                         );
                         return _planTile(context: context,
                           title: "UP TO 50 DRIVERS",
@@ -293,7 +293,7 @@ class ChooseATeamPlan extends StatelessWidget {
                         final price = controller.displayPriceFor(
                           plan: controller.plan100.value,
                           fallbackProductId: SubscriptionBillingService.productTeam100Monthly,
-                          fallbackPrice: "749.00",
+                          fallbackPrice: "849.00",
                         );
                         return _planTile(context: context,
                           title: "UP TO 100 DRIVERS",
@@ -336,7 +336,7 @@ class ChooseATeamPlan extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             Text(
-                              'By clicking "Subscribe", you agree to\nour',
+                              'By tapping "Subscribe", you agree to\nour',
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 color: Colors.white,

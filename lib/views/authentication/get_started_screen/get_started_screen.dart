@@ -96,7 +96,7 @@ class GetStartedScreen extends StatelessWidget {
                 ),
                 SizedBox(height: context.h(19)),
                 Text(
-                  'Start automated routing with your 7-day\nfree trial, then \$14.99/mo for\nindividuals.',
+                  'Start automated routing with your 7-day\nfree trial, then \$17.99/mo for\nindividuals.',
                   style: bodyStyle,
                   textAlign: TextAlign.center,
                 ),
@@ -170,7 +170,7 @@ class GetStartedScreen extends StatelessWidget {
                 ),
                 SizedBox(height: context.h(14)),
                 Text(
-                  'Start automated routing with your 7-day free trial, then \$14.99/mo for individuals.',
+                  'Start automated routing with your 7-day free trial, then \$17.99/mo for individuals.',
                   style: bodyStyle,
                   textAlign: TextAlign.center,
                 ),

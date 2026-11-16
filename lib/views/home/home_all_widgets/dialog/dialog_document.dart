@@ -3,7 +3,7 @@ import 'package:right_routes/utils/responsive_ext.dart';
 import 'package:right_routes/global_widgets/custom_info_dialog.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-const String createRouteTutorialVideoUrl = 'https://youtu.be/YqIv0VveXI4';
+const String createRouteTutorialVideoUrl = 'https://youtu.be/a6umEg4rT-Y';
 
 /// Opens the "How to Create a Route" YouTube tutorial externally.
 Future<void> openCreateRouteTutorialVideo() async {
