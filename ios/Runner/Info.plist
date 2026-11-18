@@ -2,69 +2,31 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-
-
-
- <key>NSLocationWhenInUseUsageDescription</key>
-  <string>We need your location to navigate your route</string>
-
-  <key>NSLocationAlwaysUsageDescription</key>
-  <string>We need your location for turn-by-turn navigation</string>
-
-
-<!-- Touch id permission -->
-<key>NSFaceIDUsageDescription</key>
-<string>We need Face ID permission to authenticate you</string>
-
-<!-- microphone permission -->
-<key>NSMicrophoneUsageDescription</key>
-<string>This app needs microphone access for voice input</string>
-<key>NSSpeechRecognitionUsageDescription</key>
-<string>This app needs speech recognition for voice directions</string>
-
-
-<key>NSMicrophoneUsageDescription</key>
-<string>Voice input for route directions</string>
-<key>NSCameraUsageDescription</key>
-<string>Capture permit documents</string>
-<key>NSPhotoLibraryUsageDescription</key>
-<string>Access photos for permits</string>
-
-
-
-<key>NSPhotoLibraryUsageDescription</key>
-<string>We need access to your photo library to import permit images.</string>
-
-<key>NSCameraUsageDescription</key>
-<string>We need access to your camera to take photos of permits.</string>
-
-<key>NSPhotoLibraryAddUsageDescription</key>
-<string>We need permission to save images to your photo library.</string>
-
-
-
-
-
-
-
-
-<key>NSPhotoLibraryUsageDescription</key>
-<string>Need to access files for permit import</string>
-<key>NSAppTransportSecurity</key>
-<dict>
-  <key>NSAllowsArbitraryLoads</key>
-  <true/>
-</dict>
-
-<!-- map libre-->
-<key>NSLocationWhenInUseUsageDescription</key>
-<string>[Explain why the app needs the user's location]</string>
-
-
-
-
-
-
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>RightRoute uses your location to plan and navigate your routes.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>RightRoute uses your location for turn-by-turn navigation along your route.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>RightRoute uses your location for turn-by-turn navigation along your route.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>RightRoute uses Face ID to sign you in securely.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>RightRoute uses the microphone for voice input of route directions.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>RightRoute uses speech recognition to understand voice directions.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>RightRoute uses the camera to take photos of route permits.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>RightRoute accesses your photo library to import permit images.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>RightRoute saves images to your photo library.</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
